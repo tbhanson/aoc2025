@@ -24,7 +24,6 @@
  )
 
 (define (string->lock-roation str)
-  ;(assert (= (string-length str) 2) (format "poker-card string should be exactly 2 characters long (~a)~n" str))
   (lock-rotation (string-ref str 0) (string->number (substring str 1))))
 
 (define lock-rotation-lexer
