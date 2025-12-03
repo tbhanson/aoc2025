@@ -8,6 +8,9 @@
   ; struct automatics
   [string->ID-range (-> string? (values exact-nonnegative-integer? exact-nonnegative-integer?))]
   [read-ID-ranges (-> port? stream?)]
+  [invalid-ID (-> exact-nonnegative-integer? boolean?)]
+  [invalid-IDs-in-range (-> exact-nonnegative-integer? exact-nonnegative-integer? stream?)]
+  [sum-invalid-IDs-in-ID-range-stream (-> stream? exact-nonnegative-integer?)]
   )
  )
 
@@ -50,3 +53,33 @@
 (define (read-ID-ranges a-port)
    (ID-range-lexer a-port))
 
+(define (invalid-ID id)
+  (let ([id-as-str (number->string id)])
+    (let ([id-str-len (string-length id-as-str)])
+      (and
+       (= 
+        (remainder id-str-len 2)
+        0)
+       (string=?
+        (substring id-as-str 0 (/ id-str-len 2))
+        (substring id-as-str (/ id-str-len 2)))))))
+                
+
+(define (invalid-IDs-in-range lo hi)
+  (stream-filter
+   invalid-ID
+   (in-range lo (+ hi 1))
+   ))
+
+
+(define (sum-invalid-IDs-in-ID-range-stream ID-range-stream)
+  (for/fold ([result 0])
+            ([next-range ID-range-stream])
+    (let ([next-partial-sum
+           (stream-fold
+            + 0
+            (invalid-IDs-in-range
+             (car next-range)
+             (cdr next-range)))])
+      (+ result next-partial-sum))))
+    
