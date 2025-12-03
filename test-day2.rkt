@@ -64,3 +64,12 @@
      "1698522-1698528,446443-446449,38593856-38593862,565653-565659,"
      "824824821-824824827,2121212118-2121212124"))))
  1227775554)
+
+; check against their "real" input
+;; (check-equal?
+;;  (sum-invalid-IDs-in-ID-range-stream
+;;   (read-ID-ranges
+;;    (open-input-file "test-data/input-day2-1.txt")))
+;;  17)
+
+
