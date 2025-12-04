@@ -94,3 +94,11 @@
      "824824821-824824827,2121212118-2121212124"))))
  4174379265)
 
+; check against their "real" input
+;; (time
+;;  (check-equal?
+;;   (sum-invalid-IDs-2-in-ID-range-stream
+;;    (read-ID-ranges
+;;     (open-input-file "test-data/input-day2-1.txt")))
+;;   real answer))
+;; -> cpu time: 5469 real time: 5504 gc time: 1001
