@@ -6,6 +6,8 @@
 (provide
  (contract-out
    [max-joltage (-> string? exact-nonnegative-integer?)]
+   [read-joltage-strings (-> port? stream?)]
+   [total-joltage (-> stream? exact-nonnegative-integer?)]
   )
  )
 
@@ -30,3 +32,27 @@
           sub-result
           next-try))))))
 
+(define joltage-string-lexer
+  (lexer
+   [(concatenation (repetition 1 99 (char-set "0123456789")))
+   
+    (begin
+      ;(printf "saw joltage string: ~a~n" lexeme)
+      (stream-cons
+       lexeme
+       (joltage-string-lexer input-port)))]
+      
+   [whitespace
+    (joltage-string-lexer input-port)]
+
+   [(eof)
+    empty-stream]
+   ))
+
+(define (read-joltage-strings a-port)
+   (joltage-string-lexer a-port))
+
+(define (total-joltage stream-of-joltage-strings)
+  (for/fold ([sum 0])
+            ([joltage-string stream-of-joltage-strings])
+    (+ sum (max-joltage joltage-string))))
