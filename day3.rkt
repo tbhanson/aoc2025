@@ -34,7 +34,7 @@
 
 (define joltage-string-lexer
   (lexer
-   [(concatenation (repetition 1 99 (char-set "0123456789")))
+   [(concatenation (repetition 1 999 (char-set "0123456789")))
    
     (begin
       ;(printf "saw joltage string: ~a~n" lexeme)
@@ -53,6 +53,9 @@
    (joltage-string-lexer a-port))
 
 (define (total-joltage stream-of-joltage-strings)
+  ;(printf "(total-joltage stream-of-joltage-strings)~n")
   (for/fold ([sum 0])
             ([joltage-string stream-of-joltage-strings])
-    (+ sum (max-joltage joltage-string))))
+    (let ([next-max-joltage (max-joltage joltage-string)])
+      ;(printf " next-max-joltage: ~a~n" next-max-joltage)
+      (+ sum next-max-joltage))))
