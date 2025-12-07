@@ -8,7 +8,9 @@
    [max-joltage (-> string? exact-nonnegative-integer?)]
    [read-joltage-strings (-> port? stream?)]
    [total-joltage (-> stream? exact-nonnegative-integer?)]
+
    [max-joltage-2 (-> string? exact-nonnegative-integer?)]
+   [total-joltage-2  (-> stream? exact-nonnegative-integer?)]
   )
  )
 
@@ -94,4 +96,10 @@
             ([joltage-string stream-of-joltage-strings])
     (let ([next-max-joltage (max-joltage joltage-string)])
       ;(printf " next-max-joltage: ~a~n" next-max-joltage)
+      (+ sum next-max-joltage))))
+
+(define (total-joltage-2 stream-of-joltage-strings)
+    (for/fold ([sum 0])
+            ([joltage-string stream-of-joltage-strings])
+    (let ([next-max-joltage (max-joltage-2 joltage-string)])
       (+ sum next-max-joltage))))

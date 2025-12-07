@@ -71,3 +71,18 @@
  (max-joltage-2 "234234234234278")
  434234234278)
 
+(check-equal?
+ (max-joltage-2 "818181911112111")
+ 888911112111)
+
+; test day 3 part 2
+;; (let ([stream-of-joltage-strings
+;;        (read-joltage-strings
+;;         (open-input-file "test-data/input-day3-1.txt"))])
+;;   (check-equal?
+;;    (total-joltage-2 stream-of-joltage-strings)
+;;    ...))
+
+
+
+
