@@ -37,25 +37,28 @@
 (define (max-joltage-2 batteries-string)
   ; greedily collect the biggest digit scanning the string-remaining left to right, but not going closer to the end than digits-still-to-collect
   (define (iter result-so-far digits-still-to-collect string-remaining)
-    (printf "(iter ~a ~a ~a)~n" result-so-far digits-still-to-collect string-remaining)
+;;     (printf "(iter [~a] ~a ~a)~n" result-so-far digits-still-to-collect string-remaining)
     (cond [(<= digits-still-to-collect 0)
            result-so-far]
 
           [else
            (let ([remaining-string-length (string-length string-remaining)])
+;;              (printf " remaining-string-length: ~a~n" remaining-string-length)
+             
              (let ([eligible-sub-string
                     (substring string-remaining
                                0
                                (- remaining-string-length (- digits-still-to-collect 1)))])
-               (printf " eligible-sub-string: ~a~n" eligible-sub-string)
+;;                (printf " eligible-sub-string: ~a~n" eligible-sub-string)
                (let-values ([(next-digit new-string-remaining)
                              (for/fold ([best-digit (string-ref eligible-sub-string 0)]
                                         [string-after-best (substring string-remaining 1)])
-                                       ([digit eligible-sub-string]
-                                        [pos (in-range (string-length eligible-sub-string))])
-                               (printf "  digit: ~a pos: ~a~n"digit pos)
+                                       ([digit (substring eligible-sub-string 1)]
+                                        [pos (in-range 1 (string-length eligible-sub-string))])
+;;                                (printf "  best-digit: ~a string-after-best: ~a~n" best-digit string-after-best)
+;;                                (printf "  digit: ~a pos: ~a~n" digit pos)
                                (if (char>? digit best-digit)
-                                   (values digit (substring eligible-sub-string pos)) ; choose a better character
+                                   (values digit (substring string-remaining (+ pos 1))) ; choose a better character
                                    (values best-digit string-after-best)))])
                  (iter
                   (string-append result-so-far (list->string (list next-digit)))
