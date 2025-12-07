@@ -56,3 +56,8 @@
 ;;   (check-equal?
 ;;    (total-joltage stream-of-joltage-strings)
 ;;    ---)) ; my first computed answer was wrong (I had naively thought the strings would be at most 99 digits long!!)
+
+; max-joltage-2
+(check-equal?
+ (max-joltage-2 "987654321111111")
+ 987654321111)
