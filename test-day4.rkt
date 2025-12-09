@@ -10,16 +10,29 @@
           "..@@~n"
           "@@@.~n"
           "@@@@~n")))])
-  (check-equal?
-   (read-forklift-grid in-port)
-   (list->vector
-    (list
+  (let ([forklift-grid
+         (read-forklift-grid in-port)])       
+    (check-equal?
+     forklift-grid
      (list->vector
-      (string->list  "..@@"))
-     (list->vector
-      (string->list  "@@@."))
-     (list->vector
-      (string->list  "@@@@"))))))
+      (list
+       (list->vector
+        (string->list  "..@@"))
+       (list->vector
+        (string->list  "@@@."))
+       (list->vector
+        (string->list  "@@@@")))))
+
+    (check-equal?
+     (adjacent-roll-count forklift-grid 0 1)
+     4)
+
+    (check-equal?
+     (accessible-roll-count forklift-grid)
+     5)
+    ))
+
+    
      
     
    

@@ -6,10 +6,8 @@
 (provide
  (contract-out
   [read-forklift-grid (-> port? vector?)]
-;;    [max-joltage (-> string? exact-nonnegative-integer?)]
-;;    [read-joltage-strings (-> port? stream?)]
-;;    [total-joltage (-> stream? exact-nonnegative-integer?)]
-
+  [adjacent-roll-count (-> vector? exact-nonnegative-integer? exact-nonnegative-integer? exact-nonnegative-integer?)]
+  [accessible-roll-count (-> vector? exact-nonnegative-integer?)]
   )
  )
 
@@ -19,7 +17,6 @@
    [(concatenation (repetition 1 999 (char-set ".@")))
    
     (begin
-      ;(printf "saw joltage string: ~a~n" lexeme)
       (stream-cons
        (list->vector
         (string->list lexeme))
@@ -27,7 +24,7 @@
       
    [whitespace
     (forklift-grid-lexer input-port)]
-
+   
    [(eof)
     empty-stream]
    ))
@@ -36,3 +33,70 @@
   (list->vector
    (stream->list
     (forklift-grid-lexer a-port))))
+
+(define neighbors-relative
+  (filter
+   (lambda (coord)
+     (not
+      (and (= (car coord) 0)
+           (= (cdr coord) 0))))
+   
+   (for*/list ([i (in-range -1 2)]
+               [j (in-range -1 2)])
+     (cons i j))))
+
+(define (char-at a-grid coord)
+  (let ([i (car coord)]
+        [j (cdr coord)])
+    (vector-ref
+     (vector-ref a-grid i)
+     j)))
+
+(define (adjacent-roll-count a-grid row col)
+  (let ([M (vector-length a-grid)]
+        [N (vector-length (vector-ref a-grid 0))])
+
+    (define (legal-coord? coord)
+      (let ([i (car coord)]
+            [j (cdr coord)])
+        (and (<= 0 i) (< i M)
+             (<= 0 j) (< j N))))
+
+    (define (sum-coords c1 c2)
+      (cons
+       (+ (car c1) (car c2))
+       (+ (cdr c1) (cdr c2))))
+
+   
+             
+    (for/fold ([sum 0])
+              ([neighbor
+                (stream-filter
+                 legal-coord?
+                 (stream-map
+                  (lambda (c)
+                    (sum-coords (cons row col) c))
+                  neighbors-relative))])
+      (if (equal? (char-at a-grid neighbor) #\@)
+          (+ sum 1)
+          sum))))
+
+(define (accessible-roll-count a-grid)
+  (define (roll-at? a-grid i j)
+    (equal?
+     (char-at a-grid (cons i j))
+     #\@))
+
+  (let ([M (vector-length a-grid)]
+        [N (vector-length (vector-ref a-grid 0))])
+    (for*/fold ([sum 0])
+              ([i (in-range M)]
+               [j (in-range N)])
+      (if (and
+           (roll-at? a-grid i j)
+           (<
+            (adjacent-roll-count a-grid i j)
+            4))
+          (+ sum 1)
+          sum))))
+    
