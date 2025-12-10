@@ -148,4 +148,10 @@
      new-row-x)))
          
 (define (remove-accessible-rolls a-grid)
-  (vector-copy a-grid))
+  (for/fold ([result a-grid])
+            ([removable-roll-location
+              (accessible-roll-locations a-grid)])
+    (remove-roll-at-xy
+     result
+     (car removable-roll-location)
+     (cdr removable-roll-location))))

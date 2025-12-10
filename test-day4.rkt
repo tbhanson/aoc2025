@@ -115,7 +115,18 @@
         (string->list  "@@@."))
        (list->vector
         (string->list  "@@@@")))))
-    
+
+    (check-equal?
+     (remove-accessible-rolls forklift-grid)
+     (list->vector
+      (list
+       (list->vector
+        (string->list  "...."))
+       (list->vector
+        (string->list  ".@@."))
+       (list->vector
+        (string->list  ".@@.")))))
+
     ))
     
 
