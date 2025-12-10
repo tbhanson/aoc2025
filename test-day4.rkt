@@ -127,6 +127,53 @@
        (list->vector
         (string->list  ".@@.")))))
 
+    (check-equal?
+     (remove-accessible-rolls-til-none-left forklift-grid)
+     (list->vector
+      (list
+       (list->vector
+        (string->list  "...."))
+       (list->vector
+        (string->list  "...."))
+       (list->vector
+        (string->list  "....")))))
+
     ))
     
+; remove-accessible-rolls-til-none-left with their small example
+(let ([in-port
+       (open-input-string
+        (format
+         (string-append
+          "..@@.@@@@.~n"
+          "@@@.@.@.@@~n"
+          "@@@@@.@.@@~n"
+          "@.@@@@..@.~n"
+          "@@.@@@@.@@~n"
+          ".@@@@@@@.@~n"
+          ".@.@.@.@@@~n"
+          "@.@@@.@@@@~n"
+          ".@@@@@@@@.~n"
+          "@.@.@@@.@.~n")))])
+  (let ([forklift-grid
+         (read-forklift-grid in-port)])
+    
+    (check-equal?
+     (remove-accessible-rolls-til-none-left forklift-grid)
+     '#(#(#\. #\. #\. #\. #\. #\. #\. #\. #\. #\.)
+        #(#\. #\. #\. #\. #\. #\. #\. #\. #\. #\.)
+        #(#\. #\. #\. #\. #\. #\. #\. #\. #\. #\.)
+        #(#\. #\. #\. #\. #\@ #\@ #\. #\. #\. #\.)
+        #(#\. #\. #\. #\@ #\@ #\@ #\@ #\. #\. #\.)
+        #(#\. #\. #\. #\@ #\@ #\@ #\@ #\@ #\. #\.)
+        #(#\. #\. #\. #\@ #\. #\@ #\. #\@ #\@ #\.)
+        #(#\. #\. #\. #\@ #\@ #\. #\@ #\@ #\@ #\.)
+        #(#\. #\. #\. #\@ #\@ #\@ #\@ #\@ #\. #\.)
+        #(#\. #\. #\. #\. #\@ #\@ #\@ #\. #\. #\.)))
+
+    (check-equal?
+     (count-iteratively-removable-rolls forklift-grid)
+     43)
+     
+    ))
 

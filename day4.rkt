@@ -13,6 +13,8 @@
   [accessible-roll-locations (-> vector? set?)]
   [remove-roll-at-xy (-> vector? exact-nonnegative-integer? exact-nonnegative-integer? vector?)]
   [remove-accessible-rolls (-> vector? vector?)]
+  [remove-accessible-rolls-til-none-left (-> vector? vector?)]
+  [count-iteratively-removable-rolls (-> vector? exact-nonnegative-integer?)]
   
   )
  )
@@ -137,6 +139,7 @@
   (assert
    (accessible-roll-at-xy? a-grid x y)
    (format "can't remove roll at (~a ~a) of ~a -- no accessible roll there" x y a-grid))
+  ;(printf "(remove-roll-at-xy ~a (~a ~a))~n" a-grid x y)
   (let ([new-row-x
          (vector-set/copy
           (vector-ref a-grid x)
@@ -146,7 +149,8 @@
      a-grid
      x
      new-row-x)))
-         
+
+
 (define (remove-accessible-rolls a-grid)
   (for/fold ([result a-grid])
             ([removable-roll-location
@@ -155,3 +159,24 @@
      result
      (car removable-roll-location)
      (cdr removable-roll-location))))
+
+
+; this isn't really what they asked for    
+(define (remove-accessible-rolls-til-none-left a-grid)
+  (for/fold ([result a-grid])
+            ([iteration-count (in-naturals)])
+    #:final (= 0 (set-count (accessible-roll-locations result)))
+    (remove-accessible-rolls result)))
+
+(define (count-iteratively-removable-rolls a-grid)
+  (let-values ([(grid removal-count)
+                (for/fold ([next-grid a-grid]
+                           [removed-count 0])
+                          ([iteration-count (in-naturals)])
+                  #:final (= 0 (set-count (accessible-roll-locations next-grid)))
+                  (values
+                   (remove-accessible-rolls next-grid)
+                   (+
+                    removed-count
+                    (set-count (accessible-roll-locations next-grid)))))])
+    removal-count))
