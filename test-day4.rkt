@@ -83,6 +83,39 @@
     (check-false
      (accessible-roll-at-xy? forklift-grid 1 1))
 
+    (check-equal?
+     (accessible-roll-locations forklift-grid)
+     (list->set
+      (list
+       (cons 0 2)
+       (cons 0 3)
+       (cons 1 0)
+       (cons 2 0)
+       (cons 2 3))))
+
+    (check-exn
+     exn:fail?
+     (lambda ()
+       (remove-roll-at-xy forklift-grid 0 0)))
+
+    ; evidently I don't know how to use check-not-exn :(
+;;     (check-not-exn
+;;      exn:fail?
+;;      (lambda ()
+;;        (remove-roll-at-xy forklift-grid 0 2))
+;;      "this should work")
+
+    (check-equal?
+     (remove-roll-at-xy forklift-grid 0 2)
+     (list->vector
+      (list
+       (list->vector
+        (string->list  "...@"))
+       (list->vector
+        (string->list  "@@@."))
+       (list->vector
+        (string->list  "@@@@")))))
+    
     ))
     
 

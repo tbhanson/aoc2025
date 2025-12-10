@@ -10,9 +10,17 @@
   [accessible-roll-count (-> vector? exact-nonnegative-integer?)]
 
   [accessible-roll-at-xy? (-> vector? exact-nonnegative-integer? exact-nonnegative-integer? boolean?)]
+  [accessible-roll-locations (-> vector? set?)]
+  [remove-roll-at-xy (-> vector? exact-nonnegative-integer? exact-nonnegative-integer? vector?)]
+  [remove-accessible-rolls (-> vector? vector?)]
+  
   )
  )
 
+(define (assert pred anError)
+  (if (not pred) 
+      (error anError)
+      #t))
 
 (define forklift-grid-lexer
   (lexer
@@ -35,6 +43,8 @@
   (list->vector
    (stream->list
     (forklift-grid-lexer a-port))))
+
+
 
 (define neighbors-relative
   (filter
@@ -110,3 +120,32 @@
   (and
    (roll-at-xy? a-grid x y)
    (xy-accessible? a-grid x y)))
+
+(define (accessible-roll-locations a-grid)
+  (let ([M (vector-length a-grid)]
+        [N (vector-length (vector-ref a-grid 0))])
+    (for*/fold ([result (set)])
+               ([i (in-range M)]
+                [j (in-range N)])
+      (if (and
+           (roll-at-xy? a-grid i j)
+           (xy-accessible? a-grid i j))
+          (set-add result (cons i j))
+          result))))
+
+(define (remove-roll-at-xy a-grid x y)
+  (assert
+   (accessible-roll-at-xy? a-grid x y)
+   (format "can't remove roll at (~a ~a) of ~a -- no accessible roll there" x y a-grid))
+  (let ([new-row-x
+         (vector-set/copy
+          (vector-ref a-grid x)
+          y
+          #\.)])
+    (vector-set/copy
+     a-grid
+     x
+     new-row-x)))
+         
+(define (remove-accessible-rolls a-grid)
+  (vector-copy a-grid))
