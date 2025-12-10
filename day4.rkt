@@ -8,6 +8,8 @@
   [read-forklift-grid (-> port? vector?)]
   [adjacent-roll-count (-> vector? exact-nonnegative-integer? exact-nonnegative-integer? exact-nonnegative-integer?)]
   [accessible-roll-count (-> vector? exact-nonnegative-integer?)]
+
+  [accessible-roll-at-xy? (-> vector? exact-nonnegative-integer? exact-nonnegative-integer? boolean?)]
   )
  )
 
@@ -81,22 +83,30 @@
           (+ sum 1)
           sum))))
 
-(define (accessible-roll-count a-grid)
-  (define (roll-at? a-grid i j)
-    (equal?
-     (char-at a-grid (cons i j))
-     #\@))
+(define (roll-at-xy? a-grid i j)
+  (equal?
+   (char-at a-grid (cons i j))
+   #\@))
 
+(define (xy-accessible? a-grid i j)
+  (<
+   (adjacent-roll-count a-grid i j)
+   4))
+
+(define (accessible-roll-count a-grid)
   (let ([M (vector-length a-grid)]
         [N (vector-length (vector-ref a-grid 0))])
     (for*/fold ([sum 0])
-              ([i (in-range M)]
-               [j (in-range N)])
+               ([i (in-range M)]
+                [j (in-range N)])
       (if (and
-           (roll-at? a-grid i j)
-           (<
-            (adjacent-roll-count a-grid i j)
-            4))
+           (roll-at-xy? a-grid i j)
+           (xy-accessible? a-grid i j))
           (+ sum 1)
           sum))))
     
+
+(define (accessible-roll-at-xy? a-grid x y)
+  (and
+   (roll-at-xy? a-grid x y)
+   (xy-accessible? a-grid x y)))

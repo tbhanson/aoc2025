@@ -63,3 +63,26 @@
 ;;    (accessible-roll-count forklift-grid)
 ;;    ---)
 ;;   )
+
+; part 2
+(let ([in-port
+       (open-input-string
+        (format
+         (string-append
+          "..@@~n"
+          "@@@.~n"
+          "@@@@~n")))])
+  (let ([forklift-grid
+         (read-forklift-grid in-port)])       
+    (check-false
+     (accessible-roll-at-xy? forklift-grid 0 1))
+
+    (check-true
+     (accessible-roll-at-xy? forklift-grid 0 2))
+
+    (check-false
+     (accessible-roll-at-xy? forklift-grid 1 1))
+
+    ))
+    
+
