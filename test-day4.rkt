@@ -177,3 +177,12 @@
      
     ))
 
+; test day 4 part 1
+;; (let ([forklift-grid
+;;        (read-forklift-grid
+;;         (open-input-file "test-data/input-day4-1.txt"))])       
+;;   (check-equal?
+;;    (count-iteratively-removable-rolls forklift-grid)
+;;    ---)
+;;   )
+
