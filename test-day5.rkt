@@ -37,4 +37,8 @@
         (check-true (set-member? fresh-IDs 3))
         (check-false (set-member? fresh-IDs 2))
         
-        ))))
+        )
+
+      (check-equal?
+       (count-of-fresh-IDs ID-ranges IDs)
+       3))))

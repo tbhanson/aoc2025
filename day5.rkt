@@ -7,6 +7,7 @@
  (contract-out
   [read-IDs-and-ranges (-> port? stream?)]
   [set-of-fresh-IDs (-> stream? set?)]
+  [count-of-fresh-IDs (-> stream? stream? exact-nonnegative-integer?)]
   )
  )
 
@@ -57,3 +58,12 @@
        (list->set
         (stream->list
          next-range))))))
+
+(define (count-of-fresh-IDs ID-range-stream ID-stream)
+  (let ([fresh-IDs (set-of-fresh-IDs ID-range-stream)])
+    (for/fold ([sum 0])
+              ([next-ID ID-stream])
+      (if (set-member? fresh-IDs next-ID)
+          (+ sum 1)
+          sum))))
+  
