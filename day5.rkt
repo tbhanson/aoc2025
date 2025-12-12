@@ -8,6 +8,8 @@
   [read-IDs-and-ranges (-> port? stream?)]
   [set-of-fresh-IDs (-> stream? set?)]
   [count-of-fresh-IDs (-> stream? stream? exact-nonnegative-integer?)]
+  [input->fresh-ID-count (-> stream? exact-nonnegative-integer?)]
+  
   )
  )
 
@@ -66,4 +68,10 @@
       (if (set-member? fresh-IDs next-ID)
           (+ sum 1)
           sum))))
-  
+
+(define (input->fresh-ID-count mixed-stream)
+  (let ([ID-ranges
+         (stream-filter pair? mixed-stream)]
+        [IDs
+         (stream-filter number? mixed-stream)])
+    (count-of-fresh-IDs ID-ranges IDs)))

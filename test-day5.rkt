@@ -42,3 +42,12 @@
       (check-equal?
        (count-of-fresh-IDs ID-ranges IDs)
        3))))
+
+; do actual problem
+(let ([in-port
+       (open-input-file "test-data/input-day5-1.txt")])
+  (let ([IDs-and-ranges
+         (read-IDs-and-ranges in-port)])
+    (check-equal?
+     (input->fresh-ID-count IDs-and-ranges)
+     17)))
