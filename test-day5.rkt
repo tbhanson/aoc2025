@@ -18,17 +18,23 @@
           "17~n"
           "32~n")))])
           
-  (let ([ID-ranges
-         (read-ID-ranges in-port)]
-        [IDs
-        (read-IDs in-port)]
-        )
-    
-    (check-equal?
-     (stream-first ID-ranges)
-     (cons 3 5))
+  (let ([IDs-and-ranges
+         (read-IDs-and-ranges in-port)])
+    (let ([ID-ranges
+           (stream-filter pair? IDs-and-ranges)]
+          [IDs
+           (stream-filter number? IDs-and-ranges)])
+          
+      (check-equal?
+       (stream-first ID-ranges)
+       (cons 3 5))
+      
+      (check-equal?
+       (stream-first IDs)
+       1)
 
-    (check-equal?
-     (stream-first IDs)
-     1)
-    ))
+      (let ([fresh-IDs (set-of-fresh-IDs ID-ranges)])
+        (check-true (set-member? fresh-IDs 3))
+        (check-false (set-member? fresh-IDs 2))
+        
+        ))))

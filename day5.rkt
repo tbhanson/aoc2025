@@ -5,8 +5,8 @@
 
 (provide
  (contract-out
-  [read-ID-ranges (-> port? stream?)]
-  [read-IDs (-> port? stream?)]
+  [read-IDs-and-ranges (-> port? stream?)]
+  [set-of-fresh-IDs (-> stream? set?)]
   )
  )
 
@@ -15,7 +15,7 @@
       (error anError)
       #t))
 
-(define ID-range-lexer
+(define ID-and-range-lexer
   (lexer
    [(concatenation (repetition 1 99 numeric) (char-set "-") (repetition 1 99 numeric))
     
@@ -24,40 +24,36 @@
        (cons (string->number (car split-lexeme))
              (string->number (cadr split-lexeme)))
  
-       (ID-range-lexer input-port)))]
+       (ID-and-range-lexer input-port)))]
 
-   ; normal end
-   [(concatenation #\newline #\newline)
-    empty-stream]
-
-   ; safety end
-   [(eof)
-    empty-stream]
-
-   [#\newline
-    (ID-range-lexer input-port)]
-   ))
-
-(define (read-ID-ranges a-port)
-    (ID-range-lexer a-port))
-
-
-(define ID-lexer
-  (lexer
    [(repetition 1 99 numeric)
     
     (stream-cons
      (string->number lexeme)
      
-     (ID-lexer input-port))]
+     (ID-and-range-lexer input-port))]
+
+
+   [whitespace
+    (ID-and-range-lexer input-port)]
 
    [(eof)
     empty-stream]
-
-   [#\newline
-    (ID-lexer input-port)]
+   
    ))
 
-(define (read-IDs a-port)
-    (ID-lexer a-port))
+(define (read-IDs-and-ranges a-port)
+    (ID-and-range-lexer a-port))
 
+(define (set-of-fresh-IDs ID-ranges-stream)
+  (for/fold ([result (set)])
+            ([next-ID-range-pair ID-ranges-stream])
+    (let ([next-range
+           (in-range
+            (car next-ID-range-pair)
+            (+ 1 (cdr next-ID-range-pair)))])
+      (set-union
+       result
+       (list->set
+        (stream->list
+         next-range))))))
