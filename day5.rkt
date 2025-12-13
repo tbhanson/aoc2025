@@ -6,7 +6,6 @@
 (provide
  (contract-out
   [read-IDs-and-ranges (-> port? stream?)]
-  [set-of-fresh-IDs (-> stream? set?)]
   [count-of-fresh-IDs (-> stream? stream? exact-nonnegative-integer?)]
   [input->fresh-ID-count (-> stream? exact-nonnegative-integer?)]
   
@@ -48,26 +47,22 @@
 (define (read-IDs-and-ranges a-port)
     (ID-and-range-lexer a-port))
 
-(define (set-of-fresh-IDs ID-ranges-stream)
-  (for/fold ([result (set)])
-            ([next-ID-range-pair ID-ranges-stream])
-    (let ([next-range
-           (in-range
-            (car next-ID-range-pair)
-            (+ 1 (cdr next-ID-range-pair)))])
-      (set-union
-       result
-       (list->set
-        (stream->list
-         next-range))))))
 
 (define (count-of-fresh-IDs ID-range-stream ID-stream)
-  (let ([fresh-IDs (set-of-fresh-IDs ID-range-stream)])
-    (for/fold ([sum 0])
-              ([next-ID ID-stream])
-      (if (set-member? fresh-IDs next-ID)
-          (+ sum 1)
-          sum))))
+  (for/fold ([sum 0])
+            ([next-ID ID-stream])
+    (if (stream-empty?
+         (stream-filter
+          (lambda (next-id-range)
+            (let ([lo (car next-id-range)]
+                  [hi (cdr next-id-range)])
+              (and
+               (<= lo next-ID)
+               (<= next-ID hi))))
+          ID-range-stream))
+        sum
+        (+ sum 1)
+        )))
 
 (define (input->fresh-ID-count mixed-stream)
   (let ([ID-ranges

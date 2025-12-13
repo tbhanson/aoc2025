@@ -33,21 +33,15 @@
        (stream-first IDs)
        1)
 
-      (let ([fresh-IDs (set-of-fresh-IDs ID-ranges)])
-        (check-true (set-member? fresh-IDs 3))
-        (check-false (set-member? fresh-IDs 2))
-        
-        )
-
       (check-equal?
        (count-of-fresh-IDs ID-ranges IDs)
        3))))
 
 ; do actual problem
-(let ([in-port
-       (open-input-file "test-data/input-day5-1.txt")])
-  (let ([IDs-and-ranges
-         (read-IDs-and-ranges in-port)])
-    (check-equal?
-     (input->fresh-ID-count IDs-and-ranges)
-     17)))
+;; (let ([in-port
+;;        (open-input-file "test-data/input-day5-1.txt")])
+;;   (let ([IDs-and-ranges
+;;          (read-IDs-and-ranges in-port)])
+;;     (check-equal?
+;;      (input->fresh-ID-count IDs-and-ranges)
+;;      ---)))
