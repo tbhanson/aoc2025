@@ -100,6 +100,12 @@
      (fresh-ID-count-by-ranges in-port)
      14)))
 
+; do actual problem
+;; (let ([in-port
+;;        (open-input-file "test-data/input-day5-1.txt")])
+;;     (check-equal?
+;;      (fresh-ID-count-by-ranges in-port)
+;;      17))
 
 
     
