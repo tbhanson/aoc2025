@@ -14,7 +14,12 @@
           
   (let ([ceph-arith
          (read-cephalapod-arithmetic in-port)])          
-      (check-equal?
-       (stream-first ceph-arith)
-       (list 123 328 51 64))
-    ))
+    (check-equal?
+     (stream-first ceph-arith)
+     (list 123 328 51 64))
+
+    (check-equal?
+     (solve-cephalapod-arithmetic ceph-arith)
+     4277556
+    
+    )))
