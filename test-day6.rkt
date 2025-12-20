@@ -23,3 +23,14 @@
      4277556
     
     )))
+
+; do actual problem
+;; (let ([in-port
+;;        (open-input-file "test-data/input-day6-1.txt")])
+;; 
+;;   (let ([ceph-arith
+;;          (read-cephalapod-arithmetic in-port)])          
+;;     (check-equal?
+;;      (solve-cephalapod-arithmetic ceph-arith)
+;;      ...
+;;      )))

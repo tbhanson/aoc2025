@@ -18,7 +18,7 @@
 (define cephalapod-arithmetic-lexer
   
   (lexer
-   [(concatenation (repetition 1 999 (char-set "0123456789 "))
+   [(concatenation (repetition 1 9999 (char-set "0123456789 "))
     #\newline)
 
     (let ([list-of-numbers (map string->number (string-split lexeme))])
@@ -26,7 +26,7 @@
        list-of-numbers
        (cephalapod-arithmetic-lexer input-port)))]
 
-   [(concatenation (repetition 1 999 (char-set "+* "))
+   [(concatenation (repetition 1 9999 (char-set "+* "))
     #\newline)
 
     (let ([list-of-ops (string-split lexeme)])
