@@ -120,4 +120,13 @@
      
      )))
 
+; do actual problem
+;; (let ([in-port
+;;        (open-input-file "test-data/input-day6-1.txt")])
+;; 
+;;   (check-equal?
+;;    (solve-cephalapod-arithmetic-part-2 in-port)
+;;    17
+;;      ))
+
   
