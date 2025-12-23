@@ -6,13 +6,15 @@
 
 (provide
  (contract-out
+  ;part 1
   [read-cephalapod-arithmetic (-> port? stream?)]
   [solve-cephalapod-arithmetic (-> stream? exact-nonnegative-integer?)]
-
+  ;part 2
   [read-lines (-> port? stream?)] ; stream of lines top to bottom as expected
   [vector-vector-transpose (-> vector? vector?)]
   [read-cephalapod-arithmetic-part-2 (-> port? vector?)]
-  [solve-cephalapod-arithmetic-part-2 (-> stream? exact-nonnegative-integer?)]
+  [solve-cephalapod-arithmetic-part-2-block (-> vector? exact-nonnegative-integer?)]
+  [solve-cephalapod-arithmetic-part-2 (-> port? exact-nonnegative-integer?)]
   )
  )
 
@@ -106,16 +108,43 @@
           (stream->list
            (stream-map
             (lambda (line)
-              (printf "line: ~a~n" line)
+              ;(printf "line: ~a~n" line)
               (list->vector
                (string->list line)))
             (read-lines a-port))))])
-    (printf "vector-of-line-vectors: ~a~n" vector-of-line-vectors)
+    ;(printf "vector-of-line-vectors: ~a~n" vector-of-line-vectors)
     (vector-vector-transpose
      vector-of-line-vectors)))
-     
-   
 
-(define (solve-cephalapod-arithmetic-part-2 line-stream)
-  0)
+
+(define (solve-cephalapod-arithmetic-part-2-block prob-vec-vec)
+  (let ([row-count (vector-length prob-vec-vec)]
+        [col-count (vector-length (vector-ref prob-vec-vec 0))])
+    ;(printf "row-count: ~a~n" row-count)
+    ;(printf "col-count: ~a~n" col-count)
+    
+    (let ([op-chr (vector-ref (vector-ref prob-vec-vec 0) 0)])
+      ;(printf "op-chr: ~a~n" op-chr)
+      (let ([op
+             (cond [(equal? op-chr #\+) +]
+                   [(equal? op-chr #\*) *]
+                   [else (error (format "op must be + or *, not ~a" op-chr))])]
+            [id
+             (cond [(equal? op-chr #\+) 0]
+                   [(equal? op-chr #\*) 1]
+                   [else (error (format "op must be + or *, not ~a" op-chr))])])
+        (for/fold ([result id])
+                  ([next-row (vector->list prob-vec-vec)])
+          (let ([next-operand
+                 (string->number
+                  (list->string
+                   (reverse 
+                    (filter char-numeric? (vector->list next-row)))))])
+            ;(printf "next-operand: ~a~n" next-operand)
+            (op result next-operand)))))))
          
+; now solve all a block at a time?
+(define (solve-cephalapod-arithmetic-part-2 prob-port)
+  (let ([prob-vec-vec (read-cephalapod-arithmetic-part-2 prob-port)])
+    (printf "prob-vec-vec: ~a~n" prob-vec-vec)
+    0))
