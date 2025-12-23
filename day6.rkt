@@ -14,6 +14,7 @@
   [vector-vector-transpose (-> vector? vector?)]
   [read-cephalapod-arithmetic-part-2 (-> port? vector?)]
   [solve-cephalapod-arithmetic-part-2-block (-> vector? exact-nonnegative-integer?)]
+  [split-on-blank-rows (-> vector? (listof vector?))]
   [solve-cephalapod-arithmetic-part-2 (-> port? exact-nonnegative-integer?)]
   )
  )
@@ -123,7 +124,7 @@
     ;(printf "row-count: ~a~n" row-count)
     ;(printf "col-count: ~a~n" col-count)
     
-    (let ([op-chr (vector-ref (vector-ref prob-vec-vec 0) 0)])
+    (let ([op-chr (vector-ref (vector-ref prob-vec-vec 0) (- col-count 1))])
       ;(printf "op-chr: ~a~n" op-chr)
       (let ([op
              (cond [(equal? op-chr #\+) +]
@@ -138,13 +139,61 @@
           (let ([next-operand
                  (string->number
                   (list->string
-                   (reverse 
-                    (filter char-numeric? (vector->list next-row)))))])
+                   (filter char-numeric? (vector->list next-row))))])
             ;(printf "next-operand: ~a~n" next-operand)
             (op result next-operand)))))))
-         
-; now solve all a block at a time?
+
+(define (split-on-blank-rows vec-vec)
+  (define (row-all-spaces? row-idx)
+    ;(printf "(row-all-spaces? ~a)~n" row-idx)
+    (let ([row (vector-ref vec-vec row-idx)])
+      (let ([row-length (vector-length row)])
+        (let ([result
+           (=
+            row-length
+            (length
+             (filter
+              char-whitespace?
+              (vector->list
+               row))))])
+          ;(printf " --> ~a~n" result)
+          result))))
+  
+  (let ([row-count (vector-length vec-vec)])
+    (define (iter whole-result-so-far current-sub-problem-so-far current-row-index)
+      ;(printf "(iter ~a ~a ~a)~n" whole-result-so-far current-sub-problem-so-far current-row-index)
+      
+      (cond [(>= current-row-index row-count)
+             (cons (list->vector current-sub-problem-so-far)
+                   whole-result-so-far)]
+            
+            [(row-all-spaces? current-row-index)
+             (iter
+              (cons (list->vector current-sub-problem-so-far)
+                    whole-result-so-far)
+              '()
+              (+ current-row-index 1))]
+            
+            [else
+             (iter
+              whole-result-so-far
+              (append
+               current-sub-problem-so-far
+               (list (vector-ref vec-vec current-row-index)))
+              (+ current-row-index 1))]))
+
+    (reverse
+     (iter '() '() 0))))
+
+
+  
+; now solve all a block at a time? (not the most efficient perhaps, but ... first correct ...
 (define (solve-cephalapod-arithmetic-part-2 prob-port)
   (let ([prob-vec-vec (read-cephalapod-arithmetic-part-2 prob-port)])
-    (printf "prob-vec-vec: ~a~n" prob-vec-vec)
-    0))
+    ;(printf "prob-vec-vec: ~a~n" prob-vec-vec)
+    (let ([list-of-sub-problems
+           (split-on-blank-rows prob-vec-vec)])
+      ;(printf "list-of-sub-problems: ~a~n" list-of-sub-problems)
+      (for/fold ([sum 0])
+                ([sub-prob list-of-sub-problems])
+        (+ sum (solve-cephalapod-arithmetic-part-2-block sub-prob))))))

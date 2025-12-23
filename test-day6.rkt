@@ -73,20 +73,51 @@
 
   (check-equal?
    (solve-cephalapod-arithmetic-part-2-block
-    #(#(#\+ #\3 #\2 #\6)
-      #(#\space #\1 #\3#\ #\4)
-      #(#\space #\4 #\space #\space)
+    #(#(#\6 #\2 #\3 #\+)
+      #(#\4 #\3 #\1 #\space)
+      #(#\space #\space #\4 #\space)
       )
     )
    (+ 623 431 4))
 
-      ; their small example
+  (check-equal?
+   (split-on-blank-rows
+    (vector
+     (list->vector (string->list "abc"))
+     (list->vector (string->list "   "))
+     (list->vector (string->list "123"))))
+   (list
+    (vector
+     (list->vector (string->list "abc")))
+    (vector
+     (list->vector (string->list "123")))))
+    
+    
+
+  ; their small example
+;;   (let ([in-port
+;;          (open-input-string input-string)])
+;; 
+;; ;;     (check-equal?
+;; ;;      (car
+;; ;;       (split-on-blank-rows
+;; ;;        (read-cephalapod-arithmetic-part-2 in-port)))
+;; ;; 
+;; ;;       #(#(#\6 #\2 #\3 #\+)
+;; ;;         #(#\4 #\3 #\1 #\space)
+;; ;;         #(#\space #\space #\4 #\space)
+;; ;;         ))
+;; ;;      )
+;; 
+;;   )
+
   (let ([in-port
          (open-input-string input-string)])
-
+    
     (check-equal?
      (solve-cephalapod-arithmetic-part-2 in-port)
      3263827
      
-     
      )))
+
+  
