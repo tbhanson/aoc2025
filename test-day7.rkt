@@ -29,9 +29,12 @@
          (read-manifold in-port)])          
     (check-equal?
      (S-coord-of-manifold manifold)
-     (cons 0 7)))
-    
-  )
+     (cons 0 7))
+
+    (check-equal?
+     (splits-in-manifold manifold)
+     21)
+    ))
 
 ; do actual problem
 ;; (let ([in-port

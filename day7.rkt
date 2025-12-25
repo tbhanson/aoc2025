@@ -9,6 +9,7 @@
   ;part 1
   [read-manifold (-> port? vector?)]
   [S-coord-of-manifold (-> vector? pair?)]
+  [splits-in-manifold (-> vector? exact-nonnegative-integer?)]
   ))
 
 (define (read-manifold in-port)
@@ -44,4 +45,68 @@
             S-coords)
            S-coords)))))
 
+(define (splits-in-manifold manifold)
+  (define (compute-possible-tachyon-splits tachyons)
+    (define (iter new-so-far splits-so-far remaining)
+      (if (null? remaining)
+          (values new-so-far splits-so-far)
+          (let ([next (car remaining)]
+                [rest (cdr remaining)])
+            (cond [(char=?
+                    (vector-ref (vector-ref manifold (car next)) (cdr next))
+                    #\.) ; no split
+                   (iter (cons next new-so-far) splits-so-far rest)]
+
+                  [(char=?
+                    (vector-ref (vector-ref manifold (car next)) (cdr next))
+                    #\^) ; split!
+                   (let ([left (cons (car next) (- (cdr next) 1))]
+                         [right (cons (car next) (+ (cdr next) 1))])
+                     (iter (cons left (cons right new-so-far))
+                           (+ splits-so-far 1)
+                           rest))]
+
+                  [else
+                   (error
+                    (format
+                     "we expect . or ^ in every cell a tachyon enters, but found ~a at (~a ~a)" 
+                     (vector-ref (vector-ref manifold (car next)) (cdr next))
+                     (car next)
+                     (cdr next)))]))))
+    (let-values ([(coords splits)
+                  (iter '() 0 tachyons)])
+      (values
+       (set->list 
+        (list->set
+         coords)) ; eliminate duplicates
+       splits)))
+  
+  (let ([row-count (vector-length manifold)]
+        [S-coord (S-coord-of-manifold manifold)])
+    (let-values
+        ([(locations splits)
+          (for/fold ([tachyon-locations (list S-coord)]
+                     [split-count 0])
+                    ([row (in-range (car S-coord) (- row-count 1))])
+;;             (printf "tachyon-locations: ~a~n" tachyon-locations)
+;;             (printf "split-count: ~a~n" split-count)
+;;             (printf "row: ~a~n" row)
+            
+            (let ([tachyons-one-row-down
+                   (map
+                    (lambda (coord)
+                      (cons (+ (car coord) 1) (cdr coord)))
+                    tachyon-locations)])
+              (let-values ([(next-tachyon-locations next-splits)
+                            (compute-possible-tachyon-splits tachyons-one-row-down)])
+                ;(printf "next-splits: ~a~n" next-splits)
+                (let ([new-split-count
+                       (+
+                        split-count
+                        next-splits)])
+                  (values
+                   next-tachyon-locations
+                   new-split-count)))))])
+      splits)))
+            
   
