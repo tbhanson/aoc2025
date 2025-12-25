@@ -38,12 +38,12 @@
 
 ; do actual problem
 ;; (let ([in-port
-;;        (open-input-file "test-data/input-day6-1.txt")])
+;;        (open-input-file "test-data/input-day7-1.txt")])
 ;; 
-;;   (let ([ceph-arith
-;;          (read-cephalapod-arithmetic in-port)])          
+;;   (let ([manifold
+;;          (read-manifold in-port)])          
+;; 
 ;;     (check-equal?
-;;      (solve-cephalapod-arithmetic ceph-arith)
-;;      ...
-;;      )))
-
+;;      (splits-in-manifold manifold)
+;;      21)))
+    
