@@ -64,7 +64,11 @@
              (read-manifold in-port)])          
         (check-equal?
          (tree-of-paths-in-manifold manifold)
-         (path-tree (cons 2 2) #f #f)))))
+         (path-tree (cons 2 2) #f #f))
+
+        (check-equal?
+         (timelines-of-splits-in-manifold manifold)
+         1))))
     
   (let ([one-split
          (format
@@ -82,26 +86,31 @@
          (path-tree (cons 1 2)
                     (path-tree (cons 3 1) #f #f)
                     (path-tree (cons 3 3) #f #f)
-                    )))))
+                    ))
+
+        (check-equal?
+         (timelines-of-splits-in-manifold manifold)
+         2))))
+
+
+  (let ([in-port
+         (open-input-string sample-input)])
+    (let ([manifold
+           (read-manifold in-port)])          
+      (check-equal?
+       (timelines-of-splits-in-manifold manifold)
+       40)))
 
   )
   
-  ;;   (let ([in-port
-  ;;          (open-input-string sample-input)])
-  ;;     (let ([manifold
-  ;;            (read-manifold in-port)])          
-  ;;       (check-equal?
-  ;;        (timelines-of-splits-in-manifold manifold)
-  ;;        40)))
   
 
-  ;; (let ([in-port
-  ;;        (open-input-file "test-data/input-day7-1.txt")])
-  ;;   
-  ;;   (let ([manifold
-  ;;          (read-manifold in-port)])          
-  ;;     
-  ;;     (check-equal?
-  ;;      (timelines-of-splits-in-manifold manifold)
-  ;;      21)))
-  
+;; (let ([in-port
+;;        (open-input-file "test-data/input-day7-1.txt")])
+;;   
+;;   (let ([manifold
+;;          (read-manifold in-port)])          
+;;     
+;;     (check-equal?
+;;      (timelines-of-splits-in-manifold manifold)
+;;      21)))

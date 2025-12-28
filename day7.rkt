@@ -23,7 +23,7 @@
   [path-tree-right-child (-> path-tree? (or/c path-tree? #f))]
   ;
   [tree-of-paths-in-manifold (-> vector? (or/c path-tree? #f))]
-  ;[timelines-of-splits-in-manifold (-> vector? exact-nonnegative-integer?)]
+  [timelines-of-splits-in-manifold (-> vector? exact-nonnegative-integer?)]
   ))
 
 (define (read-manifold in-port)
@@ -166,4 +166,18 @@
                    row col))])))))
 
       (tree-from S-coord)))
+
+(define (timelines-of-splits-in-manifold manifold)
+  (define (count-leaves tree)
+    (define (leaf? tree)
+      (and (not (path-tree-left-child tree))
+           (not (path-tree-right-child tree))))
+           
+    (cond [(leaf? tree)
+           1]
+          [else
+           (+ (count-leaves (path-tree-left-child tree))
+              (count-leaves (path-tree-right-child tree)))]))
   
+  (count-leaves (tree-of-paths-in-manifold manifold)))
+   
