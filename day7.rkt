@@ -3,6 +3,10 @@
 (require parser-tools/lex)
 (require math/array)
 
+(struct path-tree
+  (coordinate left-child right-child)
+  #:prefab
+  )
 
 (provide
  (contract-out
@@ -10,6 +14,16 @@
   [read-manifold (-> port? vector?)]
   [S-coord-of-manifold (-> vector? pair?)]
   [splits-in-manifold (-> vector? exact-nonnegative-integer?)]
+  ;part 2
+  ; struct automatics
+  [path-tree? (-> any/c boolean?)]
+  [path-tree (-> pair? (or/c path-tree? #f) (or/c path-tree? #f) path-tree?)]
+  [path-tree-coordinate (-> path-tree? pair?)]
+  [path-tree-left-child (-> path-tree? (or/c path-tree? #f))]
+  [path-tree-right-child (-> path-tree? (or/c path-tree? #f))]
+  ;
+  [tree-of-paths-in-manifold (-> vector? (or/c path-tree? #f))]
+  ;[timelines-of-splits-in-manifold (-> vector? exact-nonnegative-integer?)]
   ))
 
 (define (read-manifold in-port)
@@ -35,8 +49,8 @@
         [col-count (vector-length (vector-ref manifold 0))])
     (unique
      (for*/fold ([S-coords '()])
-       ([row (in-range row-count)]
-        [col (in-range col-count)])
+                ([row (in-range row-count)]
+                 [col (in-range col-count)])
        (if (char=?
             (vector-ref (vector-ref manifold row) col)
             #\S)
@@ -88,9 +102,9 @@
           (for/fold ([tachyon-locations (list S-coord)]
                      [split-count 0])
                     ([row (in-range (car S-coord) (- row-count 1))])
-;;             (printf "tachyon-locations: ~a~n" tachyon-locations)
-;;             (printf "split-count: ~a~n" split-count)
-;;             (printf "row: ~a~n" row)
+            ;;             (printf "tachyon-locations: ~a~n" tachyon-locations)
+            ;;             (printf "split-count: ~a~n" split-count)
+            ;;             (printf "row: ~a~n" row)
             
             (let ([tachyons-one-row-down
                    (map
@@ -108,5 +122,48 @@
                    next-tachyon-locations
                    new-split-count)))))])
       splits)))
+
+; part 2
+(define (tree-of-paths-in-manifold manifold)
+  (let ([row-count (vector-length manifold)]
+        [col-count (vector-length (vector-ref manifold 0))]
+        [S-coord (S-coord-of-manifold manifold)])
+    
+    (define (tree-from coord-in-manifold)
+      ;(printf "(tree-from ~a)~n" coord-in-manifold)
+      
+      (let ([row (car coord-in-manifold)]
+            [col (cdr coord-in-manifold)])
+        
+        (if (>= row row-count) ; we've reached bottom: return a leaf
+            (path-tree coord-in-manifold #f #f)
+            (let ([char-at-coord
+                   (vector-ref (vector-ref manifold row) col)])
+               
+              ;(printf " char-at-coord: ~a~n" char-at-coord)
+
+              (cond
+                ; no split
+                [(or
+                  (char=? char-at-coord #\.)
+                  (char=? char-at-coord #\S))
+                 (tree-from (cons (+ row 1) col))]
+
+                ; split!
+                [(char=?
+                  char-at-coord
+                  #\^)
+                 (path-tree
+                  coord-in-manifold
+                  (tree-from (cons (+ row 1) (- col 1)))
+                  (tree-from (cons (+ row 1) (+ col 1))))]
             
+                [else
+                 (error
+                  (format
+                   "we expect . or ^ in every cell a tachyon could enter, but found ~a at (~a ~a)"
+                   char-at-coord
+                   row col))])))))
+
+      (tree-from S-coord)))
   
