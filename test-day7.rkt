@@ -137,15 +137,43 @@
       103656)))
  )
 
-;; ; cpu time: 31759 real time: 33392 gc time: 13525
+; pre-memoization:
+;  cpu time: 31759 real time: 33392 gc time: 13525
+; post-memoization:
+;  cpu time: 6 real time: 9 gc time: 1
+
+(time
+ (let ([in-port
+        (open-input-file "test-data/input-day7-75.txt")])
+   
+   (let ([manifold
+          (read-manifold in-port)])          
+     
+     (check-equal?
+      (timelines-of-splits-in-manifold manifold)
+      26740010)))
+ )
+
+(time
+ (let ([in-port
+        (open-input-file "test-data/input-day7-100.txt")])
+   
+   (let ([manifold
+          (read-manifold in-port)])          
+     
+     (check-equal?
+      (timelines-of-splits-in-manifold manifold)
+      4284596710)))
+ )
+
 ;; (time
 ;;  (let ([in-port
-;;         (open-input-file "test-data/input-day7-75.txt")])
+;;         (open-input-file "test-data/input-day7-1.txt")])
 ;;    
 ;;    (let ([manifold
 ;;           (read-manifold in-port)])          
 ;;      
 ;;      (check-equal?
 ;;       (timelines-of-splits-in-manifold manifold)
-;;       26740010)))
+;;       ---)))
 ;;  )

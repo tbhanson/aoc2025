@@ -128,56 +128,71 @@
   (let ([row-count (vector-length manifold)]
         [col-count (vector-length (vector-ref manifold 0))]
         [S-coord (S-coord-of-manifold manifold)])
-    
-    (define (tree-from coord-in-manifold)
-      ;(printf "(tree-from ~a)~n" coord-in-manifold)
+
+    (let ([memo (make-hash)])
+      (define (tree-from coord-in-manifold)
+        (if (hash-has-key? memo coord-in-manifold)
+            (hash-ref memo coord-in-manifold)
       
-      (let ([row (car coord-in-manifold)]
-            [col (cdr coord-in-manifold)])
-        
-        (if (>= row row-count) ; we've reached bottom: return a leaf
-            (path-tree coord-in-manifold #f #f)
-            (let ([char-at-coord
-                   (vector-ref (vector-ref manifold row) col)])
+            ;(printf "(tree-from ~a)~n" coord-in-manifold)
+      
+            (let ([row (car coord-in-manifold)]
+                  [col (cdr coord-in-manifold)])
+
+              (let ([result
+                     (if (>= row row-count) ; we've reached bottom: return a leaf
+                         (path-tree coord-in-manifold #f #f)
+                         (let ([char-at-coord
+                                (vector-ref (vector-ref manifold row) col)])
                
-              ;(printf " char-at-coord: ~a~n" char-at-coord)
+                           ;(printf " char-at-coord: ~a~n" char-at-coord)
+                           (cond
+                             ; no split
+                             [(or
+                               (char=? char-at-coord #\.)
+                               (char=? char-at-coord #\S))
+                              (tree-from (cons (+ row 1) col))]
 
-              (cond
-                ; no split
-                [(or
-                  (char=? char-at-coord #\.)
-                  (char=? char-at-coord #\S))
-                 (tree-from (cons (+ row 1) col))]
-
-                ; split!
-                [(char=?
-                  char-at-coord
-                  #\^)
-                 (path-tree
-                  coord-in-manifold
-                  (tree-from (cons (+ row 1) (- col 1)))
-                  (tree-from (cons (+ row 1) (+ col 1))))]
+                             ; split!
+                             [(char=?
+                               char-at-coord
+                               #\^)
+                              (path-tree
+                               coord-in-manifold
+                               (tree-from (cons (+ row 1) (- col 1)))
+                               (tree-from (cons (+ row 1) (+ col 1))))]
             
-                [else
-                 (error
-                  (format
-                   "we expect . or ^ in every cell a tachyon could enter, but found ~a at (~a ~a)"
-                   char-at-coord
-                   row col))])))))
+                             [else
+                              (error
+                               (format
+                                "we expect . or ^ in every cell a tachyon could enter, but found ~a at (~a ~a)"
+                                char-at-coord
+                                row col))])))])
+                (hash-set! memo coord-in-manifold result)
+                result))))
 
-      (tree-from S-coord)))
+      (tree-from S-coord))))
 
 (define (timelines-of-splits-in-manifold manifold)
-  (define (count-leaves tree)
-    (define (leaf? tree)
-      (and (not (path-tree-left-child tree))
-           (not (path-tree-right-child tree))))
-           
-    (cond [(leaf? tree)
-           1]
-          [else
-           (+ (count-leaves (path-tree-left-child tree))
-              (count-leaves (path-tree-right-child tree)))]))
+  (let ([memo (make-hash)])
+
+    (define (count-leaves tree)
+      (define (leaf? tree)
+        (and (not (path-tree-left-child tree))
+             (not (path-tree-right-child tree))))
+
+      (cond
+        [(hash-has-key? memo tree)
+         (hash-ref memo tree)]
+
+        [else
+         (let ([result
+    
+                (if (leaf? tree)
+                    1
+                    (+ (count-leaves (path-tree-left-child tree))
+                       (count-leaves (path-tree-right-child tree))))])
+           (hash-set! memo tree result)
+           result)]))
   
-  (count-leaves (tree-of-paths-in-manifold manifold)))
-   
+    (count-leaves (tree-of-paths-in-manifold manifold))))
