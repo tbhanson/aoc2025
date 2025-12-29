@@ -105,12 +105,47 @@
   
   
 
-;; (let ([in-port
-;;        (open-input-file "test-data/input-day7-1.txt")])
-;;   
-;;   (let ([manifold
-;;          (read-manifold in-port)])          
-;;     
-;;     (check-equal?
-;;      (timelines-of-splits-in-manifold manifold)
-;;      21)))
+(let ([in-port
+       (open-input-file "test-data/input-day7-10.txt")])
+  
+  (let ([manifold
+         (read-manifold in-port)])          
+    
+    (check-equal?
+     (timelines-of-splits-in-manifold manifold)
+     13)))
+
+(let ([in-port
+       (open-input-file "test-data/input-day7-25.txt")])
+  
+  (let ([manifold
+         (read-manifold in-port)])          
+    
+    (check-equal?
+     (timelines-of-splits-in-manifold manifold)
+     419)))
+
+(time
+ (let ([in-port
+        (open-input-file "test-data/input-day7-50.txt")])
+   
+   (let ([manifold
+          (read-manifold in-port)])          
+     
+     (check-equal?
+      (timelines-of-splits-in-manifold manifold)
+      103656)))
+ )
+
+;; ; cpu time: 31759 real time: 33392 gc time: 13525
+;; (time
+;;  (let ([in-port
+;;         (open-input-file "test-data/input-day7-75.txt")])
+;;    
+;;    (let ([manifold
+;;           (read-manifold in-port)])          
+;;      
+;;      (check-equal?
+;;       (timelines-of-splits-in-manifold manifold)
+;;       26740010)))
+;;  )
