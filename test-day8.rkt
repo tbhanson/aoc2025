@@ -27,8 +27,18 @@
          "425,690,689~n"))])
   (let ([in-port
          (open-input-string sample-input)])
-    (check-equal?
-     (stream-first
-      (read-positions in-port))
-     (list 162 817 812))))
-         
+    (let ([positions (read-positions in-port)])
+           
+      (check-equal?
+       (stream-first
+        positions)
+       (list 162 817 812))
+
+      ; In this example, the two junction boxes which are closest together are 162,817,812 and 425,690,689.
+      (check-equal?
+       (closest-pair positions)
+       (list->set
+        (list
+         (list 162 817 812)
+         (list 425 690 689)))))))
+      
