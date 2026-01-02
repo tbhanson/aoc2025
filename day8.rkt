@@ -21,6 +21,7 @@
   [read-point-world (-> port? point-world?)]
   [closest-pair (-> stream? set?)]
   [connect-closest-unconnected (-> point-world? point-world?)]
+  [their-funny-product-after-N-iterations (-> point-world? exact-nonnegative-integer? exact-nonnegative-integer?)]
   ))
 
 (define (read-positions in-port)
@@ -107,3 +108,12 @@
             (begin
               (add-edge! connections new-v1 new-v2)
               world)))))))
+
+(define (their-funny-product-after-N-iterations world N)
+  (let ([world-after
+         (for/fold ([current-world world])
+                   ([i (in-range N)])
+           (connect-closest-unconnected current-world))])
+    (let ([connections (point-world-connections world-after)])
+      (printf "  connections after: ~a~n" (get-edges connections))
+      0)))

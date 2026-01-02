@@ -74,12 +74,13 @@
            (list->set
             (get-vertices
              (point-world-connections new-new-world)))
-            (set
-             (list 162 817 812)
-             (list 425 690 689)
-             (list 431 825 988))))
+           (set
+            (list 162 817 812)
+            (list 425 690 689)
+            (list 431 825 988)))))
 
-        
-     
-          ))))
-  
+      (check-equal?
+       (their-funny-product-after-N-iterations sample-world 10)
+        40)
+      
+      )))
