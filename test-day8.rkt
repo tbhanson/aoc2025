@@ -44,17 +44,17 @@
 
   (let ([in-port
          (open-input-string sample-input)])
-    (let ([sample-positions (read-numbered-positions in-port)])
+    (let ([sample-positions (read-point-world in-port)])
       (check-equal?
        (hash-ref
-        (numbered-positions-by-number sample-positions)
+        (point-world-by-number sample-positions)
         1)
        (list 162 817 812)
        )
 
       (check-equal?
        (hash-ref
-        (numbered-positions-by-position sample-positions)
+        (point-world-by-position sample-positions)
         (list 162 817 812))
        1
        )

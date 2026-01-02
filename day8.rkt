@@ -2,7 +2,7 @@
 
 (require graph)
 
-(struct numbered-positions
+(struct point-world
   (by-number by-position connections)
   #:prefab
   )
@@ -10,17 +10,17 @@
 (provide
  (contract-out
   ; struct automatics
-  [numbered-positions? (-> any/c boolean?)]
-  [numbered-positions (-> hash? hash? graph? numbered-positions?)]
-  [numbered-positions-by-number (-> numbered-positions? hash? )]
-  [numbered-positions-by-position (-> numbered-positions? hash? )]
-  [numbered-positions-connections (-> numbered-positions? graph? )]
+  [point-world? (-> any/c boolean?)]
+  [point-world (-> hash? hash? graph? point-world?)]
+  [point-world-by-number (-> point-world? hash? )]
+  [point-world-by-position (-> point-world? hash? )]
+  [point-world-connections (-> point-world? graph? )]
   
   ;part 1
   [read-positions (-> port? stream?)]
-  [read-numbered-positions (-> port? numbered-positions?)]
+  [read-point-world (-> port? point-world?)]
   [closest-pair (-> stream? set?)]
-  [connect-closest-unconnected (-> numbered-positions? numbered-positions?)]
+  [connect-closest-unconnected (-> point-world? point-world?)]
   ))
 
 (define (read-positions in-port)
@@ -31,7 +31,7 @@
                (map string->number (string-split next-line ","))])
           (stream-cons next-tuple (read-positions in-port))))))
 
-(define (read-numbered-positions in-port)
+(define (read-point-world in-port)
   (let ([positions (read-positions in-port)])
     (let-values ([(positions-by-number
                    numbers-by-positions)
@@ -42,7 +42,7 @@
                     (values
                      (hash-set by-number counter next-position)
                      (hash-set by-position next-position counter)))])
-      (numbered-positions positions-by-number numbers-by-positions))))
+      (point-world positions-by-number numbers-by-positions (undirected-graph '())))))
        
       
 
