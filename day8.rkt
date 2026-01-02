@@ -75,6 +75,9 @@
 (define (connect-closest-unconnected world)
   (let ([points-by-number (point-world-by-number world)]
         [connections (point-world-connections world)])
+;;     (printf "(connect-closest-unconnected world)~n")
+;;     (printf "  connections: ~a~n" (get-edges connections))
+    
     (let ([first-tuple (hash-ref points-by-number 1)]
           [second-tuple (hash-ref points-by-number 2)])
            
@@ -86,12 +89,18 @@
                                  ([i1 (hash-keys points-by-number)]
                                   [i2 (hash-keys points-by-number)]
                                   #:unless (equal? i1 i2)
-                                  #:unless (has-edge? connections i1 i2))
+                                  #:unless
+                                  (let ([t1 (hash-ref points-by-number i1)]
+                                        [t2 (hash-ref points-by-number i2)])
+                                    (has-edge? connections t1 t2)))
+                                  
                         (let ([t1 (hash-ref points-by-number i1)]
                               [t2 (hash-ref points-by-number i2)])
                           (let ([next-distance (distance t1 t2)])
                             (if (< next-distance closest-distance)
-                                (values (list t1 t2) next-distance)
+                                (begin
+                                  ;(printf "  new closest points: ~a and ~a~n" t1 t2)
+                                  (values (list t1 t2) next-distance))
                                 (values closest-pair closest-distance)))))])
           (let ([new-v1 (car closest)]
                 [new-v2 (cadr closest)])

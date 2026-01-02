@@ -61,10 +61,25 @@
 
       (let ([new-world (connect-closest-unconnected sample-world)])
         (check-equal?
-         (get-vertices
-          (point-world-connections new-world))
-         (list
+         (list->set
+          (get-vertices
+           (point-world-connections new-world)))
+
+         (set
           (list 162 817 812)
-          (list 425 690 689))))
+          (list 425 690 689)))
+
+        (let ([new-new-world (connect-closest-unconnected new-world)])
+          (check-equal?
+           (list->set
+            (get-vertices
+             (point-world-connections new-new-world)))
+            (set
+             (list 162 817 812)
+             (list 425 690 689)
+             (list 431 825 988))))
+
+        
      
-      )))
+          ))))
+  
