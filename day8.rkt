@@ -1,10 +1,21 @@
 #lang racket
 
+(struct numbered-positions
+  (by-number by-position)
+  #:prefab
+  )
 
 (provide
  (contract-out
+  ; struct automatics
+  [numbered-positions? (-> any/c boolean?)]
+  [numbered-positions (-> hash? hash? numbered-positions?)]
+  [numbered-positions-by-number (-> numbered-positions? hash? )]
+  [numbered-positions-by-position (-> numbered-positions? hash? )]
+  
   ;part 1
   [read-positions (-> port? stream?)]
+  [read-numbered-positions (-> port? numbered-positions?)]
   [closest-pair (-> stream? set?)]
   ))
 
@@ -15,6 +26,21 @@
         (let ([next-tuple
                (map string->number (string-split next-line ","))])
           (stream-cons next-tuple (read-positions in-port))))))
+
+(define (read-numbered-positions in-port)
+  (let ([positions (read-positions in-port)])
+    (let-values ([(positions-by-number
+                   numbers-by-positions)
+                  (for/fold ([by-number (make-immutable-hash)]
+                             [by-position (make-immutable-hash)])
+                            ([counter (in-naturals 1)]
+                             [next-position positions])
+                    (values
+                     (hash-set by-number counter next-position)
+                     (hash-set by-position next-position counter)))])
+      (numbered-positions positions-by-number numbers-by-positions))))
+       
+      
 
 (define (distance t1 t2)
   (define (square x)

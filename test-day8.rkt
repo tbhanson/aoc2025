@@ -40,5 +40,25 @@
        (list->set
         (list
          (list 162 817 812)
-         (list 425 690 689)))))))
+         (list 425 690 689))))))
+
+  (let ([in-port
+         (open-input-string sample-input)])
+    (let ([sample-positions (read-numbered-positions in-port)])
+      (check-equal?
+       (hash-ref
+        (numbered-positions-by-number sample-positions)
+        1)
+       (list 162 817 812)
+       )
+
+      (check-equal?
+       (hash-ref
+        (numbered-positions-by-position sample-positions)
+        (list 162 817 812))
+       1
+       )
+
+
+      )))
       
