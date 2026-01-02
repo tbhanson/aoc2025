@@ -21,6 +21,8 @@
   [read-point-world (-> port? point-world?)]
   [closest-pair (-> stream? set?)]
   [connect-closest-unconnected (-> point-world? point-world?)]
+  [connected-to-vertex (-> graph? list? set?)]
+  [connected-sub-graphs (-> graph? list?)]
   [their-funny-product-after-N-iterations (-> point-world? exact-nonnegative-integer? exact-nonnegative-integer?)]
   ))
 
@@ -109,11 +111,51 @@
               (add-edge! connections new-v1 new-v2)
               world)))))))
 
+(define (connected-to-vertex a-graph a-vertex)
+  (define (iter so-far still-to-check)
+    (if (set-empty? still-to-check)
+        so-far
+        (let ([next-to-check (set-first still-to-check)])
+          (if (set-member? so-far next-to-check)
+              (iter so-far (set-rest still-to-check))
+              (let ([new-frontier (get-neighbors a-graph next-to-check)])
+                (iter
+                 (set-add so-far next-to-check)
+                 (set-union (set-rest still-to-check) (list->set new-frontier))))))))
+  (iter (set) (set a-vertex)))
+  
+; return list of lists of connected points
+(define (connected-sub-graphs world-graph)
+  (define (iter subgraphs-so-far vertices-checked vertices-remaining-to-check)
+    (if (set-empty? vertices-remaining-to-check)
+        subgraphs-so-far
+        (let ([next-vertex-to-check (set-first vertices-remaining-to-check)])
+          (let ([next-sub-graph
+                 (connected-to-vertex world-graph next-vertex-to-check)])
+            (iter
+             (cons next-sub-graph subgraphs-so-far)
+             (set-union vertices-checked next-sub-graph)
+             (set-subtract vertices-remaining-to-check next-sub-graph))))))
+
+  (iter '() (set) (list->set (get-vertices world-graph))))
+               
+   
+
 (define (their-funny-product-after-N-iterations world N)
+  (printf "(their-funny-product-after-N-iterations world ~a)~n" N)
   (let ([world-after
          (for/fold ([current-world world])
                    ([i (in-range N)])
            (connect-closest-unconnected current-world))])
-    (let ([connections (point-world-connections world-after)])
-      (printf "  connections after: ~a~n" (get-edges connections))
-      0)))
+    (let ([sub-graphs (connected-sub-graphs (point-world-connections world-after))])
+      (printf " sub-graphs: ~a~n" (pretty-print sub-graphs))
+      (let ([sizes-desc
+             (sort (map set-count sub-graphs) >=)])
+        (* (car sizes-desc)
+           (cadr sizes-desc)
+           (caddr sizes-desc))))))
+           
+;;     (let ([connections (point-world-connections world-after)])
+;;       (printf "  edges after: ~a~n" (get-edges connections))
+;;       (printf "  vertices after: ~a~n" (get-vertices connections))
+;;       0)))
