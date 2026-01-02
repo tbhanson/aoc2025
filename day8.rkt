@@ -78,8 +78,8 @@
 (define (connect-closest-unconnected world)
   (let ([points-by-number (point-world-by-number world)]
         [connections (point-world-connections world)])
-;;     (printf "(connect-closest-unconnected world)~n")
-;;     (printf "  connections: ~a~n" (get-edges connections))
+    ;(printf "(connect-closest-unconnected world)~n")
+    ;;     (printf "  connections: ~a~n" (get-edges connections))
     
     (let ([first-tuple (hash-ref points-by-number 1)]
           [second-tuple (hash-ref points-by-number 2)])
@@ -108,6 +108,7 @@
           (let ([new-v1 (car closest)]
                 [new-v2 (cadr closest)])
             (begin
+              ;(printf "  connecting ~a to ~a~n" new-v1 new-v2)
               (add-edge! connections new-v1 new-v2)
               world)))))))
 
@@ -122,7 +123,13 @@
                 (iter
                  (set-add so-far next-to-check)
                  (set-union (set-rest still-to-check) (list->set new-frontier))))))))
-  (iter (set) (set a-vertex)))
+  
+  ;(printf "(connected-to-vertex a-graph ~a)~n" a-vertex)
+  (let ([result
+         (iter (set) (set a-vertex))])
+    ;(printf " -> ~a~n" result)
+    result))
+    
   
 ; return list of lists of connected points
 (define (connected-sub-graphs world-graph)
@@ -142,20 +149,17 @@
    
 
 (define (their-funny-product-after-N-iterations world N)
-  (printf "(their-funny-product-after-N-iterations world ~a)~n" N)
+  ;(printf "(their-funny-product-after-N-iterations world ~a)~n" N)
   (let ([world-after
          (for/fold ([current-world world])
                    ([i (in-range N)])
            (connect-closest-unconnected current-world))])
     (let ([sub-graphs (connected-sub-graphs (point-world-connections world-after))])
-      (printf " sub-graphs: ~a~n" (pretty-print sub-graphs))
+      ;(printf " sub-graphs: ~a~n" (pretty-print sub-graphs))
       (let ([sizes-desc
              (sort (map set-count sub-graphs) >=)])
+        ;(printf " sizes-desc: ~a~n" sizes-desc)
         (* (car sizes-desc)
            (cadr sizes-desc)
            (caddr sizes-desc))))))
            
-;;     (let ([connections (point-world-connections world-after)])
-;;       (printf "  edges after: ~a~n" (get-edges connections))
-;;       (printf "  vertices after: ~a~n" (get-vertices connections))
-;;       0)))

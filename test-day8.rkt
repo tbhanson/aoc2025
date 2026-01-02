@@ -79,8 +79,15 @@
             (list 425 690 689)
             (list 431 825 988)))))
 
+      
+      ))
+
+  (let ([in-port
+         (open-input-string sample-input)])
+    (let ([sample-world (read-point-world in-port)])
       (check-equal?
        (their-funny-product-after-N-iterations sample-world 10)
-        40)
-      
-      )))
+       40)
+
+      )
+    ))
