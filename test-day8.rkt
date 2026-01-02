@@ -1,6 +1,6 @@
 #lang racket
 
-(require rackunit "day8.rkt")
+(require rackunit graph "day8.rkt")
 
 (let ([sample-input
        (format
@@ -44,21 +44,27 @@
 
   (let ([in-port
          (open-input-string sample-input)])
-    (let ([sample-positions (read-point-world in-port)])
+    (let ([sample-world (read-point-world in-port)])
       (check-equal?
        (hash-ref
-        (point-world-by-number sample-positions)
+        (point-world-by-number sample-world)
         1)
        (list 162 817 812)
        )
 
       (check-equal?
        (hash-ref
-        (point-world-by-position sample-positions)
+        (point-world-by-position sample-world)
         (list 162 817 812))
        1
        )
 
-
+      (let ([new-world (connect-closest-unconnected sample-world)])
+        (check-equal?
+         (get-vertices
+          (point-world-connections new-world))
+         (list
+          (list 162 817 812)
+          (list 425 690 689))))
+     
       )))
-      
