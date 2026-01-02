@@ -1,7 +1,9 @@
 #lang racket
 
+(require graph)
+
 (struct numbered-positions
-  (by-number by-position)
+  (by-number by-position connections)
   #:prefab
   )
 
@@ -9,14 +11,16 @@
  (contract-out
   ; struct automatics
   [numbered-positions? (-> any/c boolean?)]
-  [numbered-positions (-> hash? hash? numbered-positions?)]
+  [numbered-positions (-> hash? hash? graph? numbered-positions?)]
   [numbered-positions-by-number (-> numbered-positions? hash? )]
   [numbered-positions-by-position (-> numbered-positions? hash? )]
+  [numbered-positions-connections (-> numbered-positions? graph? )]
   
   ;part 1
   [read-positions (-> port? stream?)]
   [read-numbered-positions (-> port? numbered-positions?)]
   [closest-pair (-> stream? set?)]
+  [connect-closest-unconnected (-> numbered-positions? numbered-positions?)]
   ))
 
 (define (read-positions in-port)
@@ -66,3 +70,7 @@
                             (values (list t1 t2) next-distance)
                             (values closest-pair closest-distance))))])
         (list->set closest)))))
+
+(define (connect-closest-unconnected world)
+  '())
+  
