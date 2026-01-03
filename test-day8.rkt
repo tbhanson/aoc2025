@@ -91,3 +91,16 @@
 
       )
     ))
+
+; part 1 actual problem
+
+(time
+ (let ([in-port
+        (open-input-file "test-data/input-day8-200.txt")])
+   
+   (let ([sample-world (read-point-world in-port)])
+     (check-equal?
+      (their-funny-product-after-N-iterations sample-world 200)
+      40)
+     )
+   ))

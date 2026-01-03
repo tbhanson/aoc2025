@@ -48,14 +48,28 @@
       (point-world positions-by-number numbers-by-positions (undirected-graph '())))))
        
       
+(define memo (make-hash))
 
 (define (distance t1 t2)
   (define (square x)
     (* x x))
-  (for/fold ([sum 0])
-            ([c1 t1]
-             [c2 t2])
-    (+ sum (square (- c2 c1)))))
+  
+  (cond
+    [(hash-has-key? memo (cons t1 t2))
+     (hash-ref memo (cons t1 t2))]
+
+    [(hash-has-key? memo (cons t2 t1))
+     (hash-ref memo (cons t2 t1))]
+
+    [else
+     (let ([result
+            (for/fold ([sum 0])
+                      ([c1 t1]
+                       [c2 t2])
+              (+ sum (square (- c2 c1))))])
+       (begin
+         (hash-set! memo (cons t1 t2) result)
+         result))]))
 
 (define (closest-pair tuples)
   (let ([first-tuple (stream-first tuples)]
