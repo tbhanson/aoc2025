@@ -87,17 +87,17 @@
 
   ; some checks of timing
 
-;;   ; cpu time: 4900 real time: 5129 gc time: 87
-;;   (time
-;;    (let ([in-port
-;;           (open-input-file "test-data/input-day8-100.txt")])
-;;    
-;;      (let ([sample-world (read-point-world in-port)])
-;;        (check-equal?
-;;         (their-funny-product-after-N-iterations sample-world 100)
-;;         990)
-;;        )
-;;      ))
+  ;;   ; cpu time: 4900 real time: 5129 gc time: 87
+  ;;   (time
+  ;;    (let ([in-port
+  ;;           (open-input-file "test-data/input-day8-100.txt")])
+  ;;    
+  ;;      (let ([sample-world (read-point-world in-port)])
+  ;;        (check-equal?
+  ;;         (their-funny-product-after-N-iterations sample-world 100)
+  ;;         990)
+  ;;        )
+  ;;      ))
 
   ;; (for ([in-file-name
   ;;        (list
@@ -128,7 +128,7 @@
   ;;    ))
 
   ; part 2
-  (printf "--------------------~n")
+  ;(printf "--------------------~n")
   ; small example
   (let ([in-port
          (open-input-string sample-input)])
@@ -142,3 +142,30 @@
       )
     )
   )
+
+; -200 -- cpu time: 4937 real time: 5086 gc time: 122
+; -300 -- invariants on: cpu time: 38028 real time: 39126 gc time: 1741
+; -300 -- invariants off: cpu time: 4286 real time: 4410 gc time: 123
+; -400 -- invariants off: cpu time: 6723 real time: 6876 gc time: 234
+;; (time
+;;  (let ([in-port
+;;         (open-input-file "test-data/input-day8-400.txt")])
+;;      
+;;    (let ([sample-world (read-point-world in-port)])
+;;      (check-equal?
+;;       (their-funny-product-after-all-connected sample-world)
+;;       8127628515)
+;;      )
+;;    ))
+
+;; ; cpu time: 46743 real time: 47834 gc time: 2237
+;; (time
+;;  (let ([in-port
+;;         (open-input-file "test-data/input-day8-1.txt")])
+;;      
+;;    (let ([sample-world (read-point-world in-port)])
+;;      (check-equal?
+;;       (their-funny-product-after-all-connected sample-world)
+;;       17)
+;;      )
+;;    ))

@@ -134,7 +134,7 @@
                     new-remaining-distances
                     connections
                     new-pair-to-connect)])
-              (world-invariant-checks result)
+              ;(world-invariant-checks result)
               result)))))))
               
 (define (connected-to-vertex a-graph a-vertex)
