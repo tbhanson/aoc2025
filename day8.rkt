@@ -3,7 +3,7 @@
 (require graph)
 
 (struct point-world
-  (by-number by-position pairs-by-distance sorted-distances connections last-pair-connected)
+  (by-number by-position pair-lists-by-distance sorted-distances connections last-pair-connected)
   #:prefab
   )
 
@@ -14,7 +14,7 @@
   [point-world (-> hash? hash? hash? list? graph? pair? point-world?)]
   [point-world-by-number (-> point-world? hash? )]
   [point-world-by-position (-> point-world? hash? )]
-  [point-world-pairs-by-distance (-> point-world? hash? )]
+  [point-world-pair-lists-by-distance (-> point-world? hash? )] ; hash of lists of pairs by distance (!)
   [point-world-sorted-distances (-> point-world? list? )]
   [point-world-connections (-> point-world? graph? )]
   [point-world-last-pair-connected  (-> point-world? pair? )]
@@ -51,10 +51,14 @@
            (+ sum (square (- c2 c1))))])
     result))
 
+; there might be collisions!
 (define (merge-hashes h1 h2)
   (for/fold ([result h1])
             ([add-key (hash-keys h2)])
-    (hash-set result add-key (hash-ref h2 add-key))))
+    (let ([h2-part (hash-ref h2 add-key)]
+          [h1-part (hash-ref h1 add-key '())])
+          
+      (hash-set result add-key (append h1-part h2-part)))))
   
 (define (read-point-world in-port)
   (let ([positions (read-positions in-port)])
@@ -73,7 +77,7 @@
                      (hash-set by-position next-position counter)
                      (if (< counter min-idx) counter min-idx)
                      (if (> counter max-idx) counter max-idx)))])
-      (let ([point-pairs-by-distance-between
+      (let ([point-pair-lists-by-distance-between
              (for/fold ([point-pairs-by-distance (make-immutable-hash)])
                        ([i1 (in-range min-pos-num max-pos-num)]) ; sic: up to N-1
                (let ([t1 (hash-ref positions-by-number i1)])
@@ -82,18 +86,22 @@
                   (for/fold ([one-row-point-pairs-by-distance (make-immutable-hash)])
                             ([i2 (in-range (+ i1 1) (+ max-pos-num 1))]) ; sic: up to N
                     (let ([t2 (hash-ref positions-by-number i2)])
-                      (hash-set
-                       one-row-point-pairs-by-distance
-                       (distance t1 t2)
-                       (cons t1 t2)))))))])
-
+                      (let ([d-t1-t2 (distance t1 t2)])
+                        (hash-set
+                         one-row-point-pairs-by-distance
+                         d-t1-t2
+                         (cons
+                          (cons t1 t2)
+                          (hash-ref one-row-point-pairs-by-distance d-t1-t2 '()))
+                         )))))))])
+        
         (let ([sorted-distances
                (sort
-                (hash-keys point-pairs-by-distance-between)
+                (hash-keys point-pair-lists-by-distance-between)
                 <)])
-
+          
           (let ([result
-                 (point-world positions-by-number numbers-by-positions point-pairs-by-distance-between sorted-distances (undirected-graph '()) #f)])
+                 (point-world positions-by-number numbers-by-positions point-pair-lists-by-distance-between sorted-distances (undirected-graph '()) #f)])
             (world-invariant-checks result)
             result))))))
        
@@ -102,26 +110,32 @@
 
 ; we'll assume there are at least 2 points, because there always are in these examples
 (define (connect-closest-unconnected world)
+  ;(printf "(connect-closest-unconnected world)~n")
   (let ([sorted-distances (point-world-sorted-distances world)])
     (let ([shortest-remaining-distance (car sorted-distances)]
           [new-remaining-distances (cdr sorted-distances)]
           [connections (point-world-connections world)])
-      (printf "(connect-closest-unconnected world)~n")
-      ;(printf "  connections: ~a~n" (get-edges connections))
+      ; here we assume there is always only one pair per distance (though we've allowed for several just in case -- an invariant checks for this)
       (let ([new-pair-to-connect
-             (hash-ref (point-world-pairs-by-distance world) shortest-remaining-distance)])
+             (car
+              (hash-ref (point-world-pair-lists-by-distance world) shortest-remaining-distance))])
+        ;(printf "  new-pair-to-connect: ~a~n" new-pair-to-connect)
+        
         (let ([new-v1 (car new-pair-to-connect)]
               [new-v2 (cdr new-pair-to-connect)])
           (begin
-            (printf "  connecting ~a to ~a~n" new-v1 new-v2)
+            ;(printf "  connecting ~a to ~a~n" new-v1 new-v2)
             (add-edge! connections new-v1 new-v2)
-            (point-world
-             (point-world-by-number world)
-             (point-world-by-position world)
-             (point-world-pairs-by-distance world)
-             new-remaining-distances
-             connections
-             new-pair-to-connect)))))))
+            (let ([result
+                   (point-world
+                    (point-world-by-number world)
+                    (point-world-by-position world)
+                    (point-world-pair-lists-by-distance world)
+                    new-remaining-distances
+                    connections
+                    new-pair-to-connect)])
+              (world-invariant-checks result)
+              result)))))))
               
 (define (connected-to-vertex a-graph a-vertex)
   (define (iter so-far still-to-check)
@@ -175,12 +189,22 @@
            (caddr sizes-desc))))))
 
 (define (their-funny-product-after-all-connected world)
+  (define (all-connected world-in-progress)
+    ;(printf "(all-connected world-in-progress)~n")
+    (let ([sub-graphs
+           (connected-sub-graphs 
+            (point-world-connections world-in-progress))]
+          [count-of-points (length (hash-keys (point-world-by-number world)))])
+      ;(printf " sub-graphs: ~a~n" sub-graphs)
+      (and
+       (= (length sub-graphs) 1)
+       (=
+        (set-count
+         (car sub-graphs))
+        count-of-points))))
+  
   (define (iter world-so-far)
-    (if (=
-         (length
-          (connected-sub-graphs
-           (point-world-connections world-so-far)))
-         1)
+    (if (all-connected world-so-far)
         (let ([x1
                (car (car (point-world-last-pair-connected world-so-far)))]
               [x2
@@ -191,6 +215,7 @@
 
   (iter world))
               
+
 
 (define (world-invariant-checks world)
   (define (assert pred anError)
@@ -205,6 +230,59 @@
            (length (hash-keys (point-world-by-number world)))
            (length (hash-keys (point-world-by-position world))))
    )
+
+  (let ([pair-lists-by-distance (point-world-pair-lists-by-distance world)])
+    (let ([count-how-many-pairs-each-distance
+           (for/fold ([result (make-immutable-hash)])
+                     ([next-distance
+                       (hash-keys pair-lists-by-distance)])
+             (let ([pair-count-this-distance
+                    (length (hash-ref pair-lists-by-distance next-distance))])
+               (let ([prior-count-count
+                      (hash-ref result pair-count-this-distance 0)])
+                 (hash-set result pair-count-this-distance (+ prior-count-count 1)))))])
+      ;(printf "count-how-many-pairs-each-distance: ~a~n" count-how-many-pairs-each-distance)
+      (assert
+       (equal? '(1)
+               (hash-keys count-how-many-pairs-each-distance))
+       (format "unexpectedly more than one pair at a distance: (count-how-many-pairs-each-distance: ~a)~n" count-how-many-pairs-each-distance))))
+      
+                   
+  ;;   ; this one is subtle: the number of distances between pairs
+  ;;   (assert
+  ;;    (= (length (hash-keys (point-world-pairs-by-distance world)))
+  ;;       (length (point-world-sorted-distances world)))
+  ;;    (format "world should have the same number of distances between pairs (~a) and number of sorted distances (~a)"
+  ;;            (length (hash-keys (point-world-pairs-by-distance world)))
+  ;;            (length (point-world-sorted-distances world)))
+  ;;    )
+
+  ; all vertices must be points from our world
+  (assert
+   (subset?
+    (list->set
+     (get-vertices (point-world-connections world)))
+    (list->set
+     (hash-keys (point-world-by-position world))))
+   (format "vertices in world's connectivity graph must all be points in the world (these aren't: ~a)"
+           (set-subtract
+            (list->set
+             (get-vertices (point-world-connections world)))
+            (list->set
+             (hash-keys (point-world-by-position world))))))
+
+;;   (printf " sizes of (connected-sub-graphs (point-world-connections world)): ~a~n"
+;;           (sort
+;;            (map set-count (connected-sub-graphs (point-world-connections world)))
+;;            >=)
+;;           )
+;; 
+;;   (printf " vertex count in (point-world-connections world): ~a~n"
+;;           (length (get-vertices (point-world-connections world))))
+;; 
+;;   (printf " edge count in (point-world-connections world): ~a~n"
+;;           (length (get-edges (point-world-connections world))))
+
   )
 ;;   [point-world-pairs-by-distance (-> point-world? hash? )]
 ;;   [point-world-sorted-distances (-> point-world? list? )]

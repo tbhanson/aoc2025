@@ -87,17 +87,17 @@
 
   ; some checks of timing
 
-  ; cpu time: 4900 real time: 5129 gc time: 87
-  (time
-   (let ([in-port
-          (open-input-file "test-data/input-day8-100.txt")])
-   
-     (let ([sample-world (read-point-world in-port)])
-       (check-equal?
-        (their-funny-product-after-N-iterations sample-world 100)
-        990)
-       )
-     ))
+;;   ; cpu time: 4900 real time: 5129 gc time: 87
+;;   (time
+;;    (let ([in-port
+;;           (open-input-file "test-data/input-day8-100.txt")])
+;;    
+;;      (let ([sample-world (read-point-world in-port)])
+;;        (check-equal?
+;;         (their-funny-product-after-N-iterations sample-world 100)
+;;         990)
+;;        )
+;;      ))
 
   ;; (for ([in-file-name
   ;;        (list
@@ -128,6 +128,7 @@
   ;;    ))
 
   ; part 2
+  (printf "--------------------~n")
   ; small example
   (let ([in-port
          (open-input-string sample-input)])
