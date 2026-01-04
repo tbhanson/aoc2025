@@ -29,6 +29,7 @@
 
   ; part 2
   [their-funny-product-after-all-connected (-> point-world? exact-nonnegative-integer?)]
+  [world-invariant-checks (-> point-world? void?)]
   ))
 
 (define (read-positions in-port)
@@ -90,8 +91,11 @@
                (sort
                 (hash-keys point-pairs-by-distance-between)
                 <)])
-        
-          (point-world positions-by-number numbers-by-positions point-pairs-by-distance-between sorted-distances (undirected-graph '()) #f))))))
+
+          (let ([result
+                 (point-world positions-by-number numbers-by-positions point-pairs-by-distance-between sorted-distances (undirected-graph '()) #f)])
+            (world-invariant-checks result)
+            result))))))
        
       
 
@@ -102,14 +106,14 @@
     (let ([shortest-remaining-distance (car sorted-distances)]
           [new-remaining-distances (cdr sorted-distances)]
           [connections (point-world-connections world)])
-      ;(printf "(connect-closest-unconnected world)~n")
-      ;;     (printf "  connections: ~a~n" (get-edges connections))
+      (printf "(connect-closest-unconnected world)~n")
+      ;(printf "  connections: ~a~n" (get-edges connections))
       (let ([new-pair-to-connect
              (hash-ref (point-world-pairs-by-distance world) shortest-remaining-distance)])
         (let ([new-v1 (car new-pair-to-connect)]
               [new-v2 (cdr new-pair-to-connect)])
           (begin
-            ;(printf "  connecting ~a to ~a~n" new-v1 new-v2)
+            (printf "  connecting ~a to ~a~n" new-v1 new-v2)
             (add-edge! connections new-v1 new-v2)
             (point-world
              (point-world-by-number world)
@@ -187,5 +191,23 @@
 
   (iter world))
               
-         
-           
+
+(define (world-invariant-checks world)
+  (define (assert pred anError)
+    (if (not pred) 
+        (error anError)
+        #t))
+  
+  (assert
+   (= (length (hash-keys (point-world-by-number world)))
+      (length (hash-keys (point-world-by-position world))))
+   (format "world should have the same number of positions (~a) and number of same (~a)"
+           (length (hash-keys (point-world-by-number world)))
+           (length (hash-keys (point-world-by-position world))))
+   )
+  )
+;;   [point-world-pairs-by-distance (-> point-world? hash? )]
+;;   [point-world-sorted-distances (-> point-world? list? )]
+;;   [point-world-connections (-> point-world? graph? )]
+;;   [point-world-last-pair-connected  (-> point-world? pair? )]
+

@@ -132,6 +132,9 @@
   (let ([in-port
          (open-input-string sample-input)])
     (let ([sample-world (read-point-world in-port)])
+      ;(printf "sample-world: ~a~n" sample-world)
+
+      
       (check-equal?
        (their-funny-product-after-all-connected sample-world)
        25272)
