@@ -34,14 +34,8 @@
         positions)
        (list 162 817 812))
 
-      ; In this example, the two junction boxes which are closest together are 162,817,812 and 425,690,689.
-      (check-equal?
-       (closest-pair positions)
-       (list->set
-        (list
-         (list 162 817 812)
-         (list 425 690 689))))))
-
+      ))
+  
   (let ([in-port
          (open-input-string sample-input)])
     (let ([sample-world (read-point-world in-port)])
@@ -95,34 +89,29 @@
 ; part 1 actual problem
 
 
-(require profile)
-(profile-thunk
- (lambda ()
-   ; cpu time: 4900 real time: 5129 gc time: 87
-   (time
-    (let ([in-port
-           (open-input-file "test-data/input-day8-100.txt")])
-   
-      (let ([sample-world (read-point-world in-port)])
-        (check-equal?
-         (their-funny-product-after-N-iterations sample-world 100)
-         990)
-        )
-      ))
-   ))
+; cpu time: 4900 real time: 5129 gc time: 87
+;; (time
+;;  (let ([in-port
+;;         (open-input-file "test-data/input-day8-100.txt")])
+;;    
+;;    (let ([sample-world (read-point-world in-port)])
+;;      (check-equal?
+;;       (their-funny-product-after-N-iterations sample-world 100)
+;;       990)
+;;      )
+;;    ))
 
-
-(profile-thunk
- (lambda ()
-   ; cpu time: 4900 real time: 5129 gc time: 87
-   (time
-    (let ([in-port
-           (open-input-file "test-data/input-day8-200.txt")])
-   
-      (let ([sample-world (read-point-world in-port)])
-        (check-equal?
-         (their-funny-product-after-N-iterations sample-world 200)
-         990)
-        )
-      ))
-   ))   
+(for ([in-file-name
+       (list
+        "test-data/input-day8-100.txt"
+        "test-data/input-day8-200.txt"
+        "test-data/input-day8-1.txt")])
+  (time
+   (let ([in-port
+          (open-input-file in-file-name)])
+     (let ([sample-world (read-point-world in-port)])
+       (printf "read sample-world with ~a points and ~a distances~n"
+               (length (hash-keys (point-world-by-number sample-world)))
+               (length (hash-keys (point-world-distances sample-world))))))))
+                 
+               

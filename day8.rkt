@@ -3,7 +3,7 @@
 (require graph)
 
 (struct point-world
-  (by-number by-position connections)
+  (by-number by-position distances connections)
   #:prefab
   )
 
@@ -11,16 +11,15 @@
  (contract-out
   ; struct automatics
   [point-world? (-> any/c boolean?)]
-  [point-world (-> hash? hash? graph? point-world?)]
+  [point-world (-> hash? hash? hash? graph? point-world?)]
   [point-world-by-number (-> point-world? hash? )]
   [point-world-by-position (-> point-world? hash? )]
+  [point-world-distances (-> point-world? hash? )]
   [point-world-connections (-> point-world? graph? )]
   
   ;part 1
   [read-positions (-> port? stream?)]
   [read-point-world (-> port? point-world?)]
-  [closest-pair (-> stream? set?)]
-  ;  [position-pairs-by-closeness (-> 
   [connect-closest-unconnected (-> point-world? point-world?)]
   [connected-to-vertex (-> graph? list? set?)]
   [connected-sub-graphs (-> graph? list?)]
@@ -35,59 +34,57 @@
                (map string->number (string-split next-line ","))])
           (stream-cons next-tuple (read-positions in-port))))))
 
-(define (read-point-world in-port)
-  (let ([positions (read-positions in-port)])
-    (let-values ([(positions-by-number
-                   numbers-by-positions)
-                  (for/fold ([by-number (make-immutable-hash)]
-                             [by-position (make-immutable-hash)])
-                            ([counter (in-naturals 1)]
-                             [next-position positions])
-                    (values
-                     (hash-set by-number counter next-position)
-                     (hash-set by-position next-position counter)))])
-      (point-world positions-by-number numbers-by-positions (undirected-graph '())))))
-       
-      
-(define memo (make-hash))
-
 (define (distance t1 t2)
   (define (square x)
     (* x x))
   
-  (cond
-    [(hash-has-key? memo (cons t1 t2))
-     (hash-ref memo (cons t1 t2))]
+  (let ([result
+         (for/fold ([sum 0])
+                   ([c1 t1]
+                    [c2 t2])
+           (+ sum (square (- c2 c1))))])
+    result))
 
-    [(hash-has-key? memo (cons t2 t1))
-     (hash-ref memo (cons t2 t1))]
+(define (merge-hashes h1 h2)
+  (for/fold ([result h1])
+            ([add-key (hash-keys h2)])
+    (hash-set result add-key (hash-ref h2 add-key))))
+  
+(define (read-point-world in-port)
+  (let ([positions (read-positions in-port)])
+    (let-values ([(positions-by-number
+                   numbers-by-positions
+                   min-pos-num
+                   max-pos-num)
+                  (for/fold ([by-number (make-immutable-hash)]
+                             [by-position (make-immutable-hash)]
+                             [min-idx 999999]
+                             [max-idx -1])
+                            ([counter (in-naturals 1)]
+                             [next-position positions])
+                    (values
+                     (hash-set by-number counter next-position)
+                     (hash-set by-position next-position counter)
+                     (if (< counter min-idx) counter min-idx)
+                     (if (> counter max-idx) counter max-idx)))])
+      (let ([point-pairs-by-distance-between
+             (for/fold ([point-pairs-by-distance (make-immutable-hash)])
+                       ([i1 (in-range min-pos-num max-pos-num)]) ; sic: up to N-1
+               (let ([t1 (hash-ref positions-by-number i1)])
+                 (merge-hashes
+                  point-pairs-by-distance
+                  (for/fold ([one-row-point-pairs-by-distance (make-immutable-hash)])
+                            ([i2 (in-range (+ i1 1) (+ max-pos-num 1))]) ; sic: up to N
+                    (let ([t2 (hash-ref positions-by-number i2)])
+                      (hash-set
+                       one-row-point-pairs-by-distance
+                       (distance t1 t2)
+                       (cons t1 t2)))))))])
+        
+        (point-world positions-by-number numbers-by-positions point-pairs-by-distance-between (undirected-graph '()))))))
+       
+      
 
-    [else
-     (let ([result
-            (for/fold ([sum 0])
-                      ([c1 t1]
-                       [c2 t2])
-              (+ sum (square (- c2 c1))))])
-       (begin
-         (hash-set! memo (cons t1 t2) result)
-         result))]))
-
-(define (closest-pair tuples)
-  (let ([first-tuple (stream-first tuples)]
-        [second-tuple (stream-first (stream-rest tuples))])
-    (let ([first-pair-distance (distance first-tuple second-tuple)])
-      (let-values ([(closest how-close)
-                    (for*/fold ([closest-pair
-                                 (list first-tuple second-tuple)]
-                                [closest-distance first-pair-distance])
-                               ([t1 tuples]
-                                [t2 tuples]
-                                #:unless (equal? t1 t2))
-                      (let ([next-distance (distance t1 t2)])
-                        (if (< next-distance closest-distance)
-                            (values (list t1 t2) next-distance)
-                            (values closest-pair closest-distance))))])
-        (list->set closest)))))
 
 ; we'll assume there are at least 2 points, because there always are in these examples
 (define (connect-closest-unconnected world)
