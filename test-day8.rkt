@@ -94,13 +94,35 @@
 
 ; part 1 actual problem
 
-(time
- (let ([in-port
-        (open-input-file "test-data/input-day8-200.txt")])
+
+(require profile)
+(profile-thunk
+ (lambda ()
+   ; cpu time: 4900 real time: 5129 gc time: 87
+   (time
+    (let ([in-port
+           (open-input-file "test-data/input-day8-100.txt")])
    
-   (let ([sample-world (read-point-world in-port)])
-     (check-equal?
-      (their-funny-product-after-N-iterations sample-world 200)
-      40)
-     )
+      (let ([sample-world (read-point-world in-port)])
+        (check-equal?
+         (their-funny-product-after-N-iterations sample-world 100)
+         990)
+        )
+      ))
    ))
+
+
+(profile-thunk
+ (lambda ()
+   ; cpu time: 4900 real time: 5129 gc time: 87
+   (time
+    (let ([in-port
+           (open-input-file "test-data/input-day8-200.txt")])
+   
+      (let ([sample-world (read-point-world in-port)])
+        (check-equal?
+         (their-funny-product-after-N-iterations sample-world 200)
+         990)
+        )
+      ))
+   ))   

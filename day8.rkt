@@ -20,6 +20,7 @@
   [read-positions (-> port? stream?)]
   [read-point-world (-> port? point-world?)]
   [closest-pair (-> stream? set?)]
+  ;  [position-pairs-by-closeness (-> 
   [connect-closest-unconnected (-> point-world? point-world?)]
   [connected-to-vertex (-> graph? list? set?)]
   [connected-sub-graphs (-> graph? list?)]
@@ -90,35 +91,30 @@
 
 ; we'll assume there are at least 2 points, because there always are in these examples
 (define (connect-closest-unconnected world)
-  (let ([points-by-number (point-world-by-number world)]
+  (let ([points-by-position (point-world-by-position world)]
         [connections (point-world-connections world)])
     ;(printf "(connect-closest-unconnected world)~n")
     ;;     (printf "  connections: ~a~n" (get-edges connections))
     
-    (let ([first-tuple (hash-ref points-by-number 1)]
-          [second-tuple (hash-ref points-by-number 2)])
+    (let ([first-tuple (car (hash-keys points-by-position))]
+          [second-tuple (cadr (hash-keys points-by-position))])
            
       (let ([first-pair-distance (distance first-tuple second-tuple)])
         (let-values ([(closest how-close)
                       (for*/fold ([closest-pair
                                    (list first-tuple second-tuple)]
                                   [closest-distance first-pair-distance])
-                                 ([i1 (hash-keys points-by-number)]
-                                  [i2 (hash-keys points-by-number)]
-                                  #:unless (equal? i1 i2)
+                                 ([t1 (hash-keys points-by-position)]
+                                  [t2 (hash-keys points-by-position)]
+                                  #:unless (equal? t1 t2)
                                   #:unless
-                                  (let ([t1 (hash-ref points-by-number i1)]
-                                        [t2 (hash-ref points-by-number i2)])
-                                    (has-edge? connections t1 t2)))
-                                  
-                        (let ([t1 (hash-ref points-by-number i1)]
-                              [t2 (hash-ref points-by-number i2)])
-                          (let ([next-distance (distance t1 t2)])
-                            (if (< next-distance closest-distance)
-                                (begin
-                                  ;(printf "  new closest points: ~a and ~a~n" t1 t2)
-                                  (values (list t1 t2) next-distance))
-                                (values closest-pair closest-distance)))))])
+                                  (has-edge? connections t1 t2))
+                        (let ([next-distance (distance t1 t2)])
+                          (if (< next-distance closest-distance)
+                              (begin
+                                ;(printf "  new closest points: ~a and ~a~n" t1 t2)
+                                (values (list t1 t2) next-distance))
+                              (values closest-pair closest-distance))))])
           (let ([new-v1 (car closest)]
                 [new-v2 (cadr closest)])
             (begin
