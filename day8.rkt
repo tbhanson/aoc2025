@@ -3,7 +3,7 @@
 (require graph)
 
 (struct point-world
-  (by-number by-position distances connections)
+  (by-number by-position pairs-by-distance sorted-distances connections)
   #:prefab
   )
 
@@ -11,10 +11,11 @@
  (contract-out
   ; struct automatics
   [point-world? (-> any/c boolean?)]
-  [point-world (-> hash? hash? hash? graph? point-world?)]
+  [point-world (-> hash? hash? hash? list? graph? point-world?)]
   [point-world-by-number (-> point-world? hash? )]
   [point-world-by-position (-> point-world? hash? )]
-  [point-world-distances (-> point-world? hash? )]
+  [point-world-pairs-by-distance (-> point-world? hash? )]
+  [point-world-sorted-distances (-> point-world? list? )]
   [point-world-connections (-> point-world? graph? )]
   
   ;part 1
@@ -80,8 +81,13 @@
                        one-row-point-pairs-by-distance
                        (distance t1 t2)
                        (cons t1 t2)))))))])
+
+        (let ([sorted-distances
+               (sort
+                (hash-keys point-pairs-by-distance-between)
+                <)])
         
-        (point-world positions-by-number numbers-by-positions point-pairs-by-distance-between (undirected-graph '()))))))
+        (point-world positions-by-number numbers-by-positions point-pairs-by-distance-between sorted-distances (undirected-graph '())))))))
        
       
 

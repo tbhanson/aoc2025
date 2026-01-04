@@ -112,6 +112,6 @@
      (let ([sample-world (read-point-world in-port)])
        (printf "read sample-world with ~a points and ~a distances~n"
                (length (hash-keys (point-world-by-number sample-world)))
-               (length (hash-keys (point-world-distances sample-world))))))))
+               (length (point-world-sorted-distances sample-world)))))))
                  
                
