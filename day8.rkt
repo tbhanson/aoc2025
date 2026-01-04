@@ -3,7 +3,7 @@
 (require graph)
 
 (struct point-world
-  (by-number by-position pairs-by-distance sorted-distances connections)
+  (by-number by-position pairs-by-distance sorted-distances connections last-pair-connected)
   #:prefab
   )
 
@@ -11,12 +11,13 @@
  (contract-out
   ; struct automatics
   [point-world? (-> any/c boolean?)]
-  [point-world (-> hash? hash? hash? list? graph? point-world?)]
+  [point-world (-> hash? hash? hash? list? graph? pair? point-world?)]
   [point-world-by-number (-> point-world? hash? )]
   [point-world-by-position (-> point-world? hash? )]
   [point-world-pairs-by-distance (-> point-world? hash? )]
   [point-world-sorted-distances (-> point-world? list? )]
   [point-world-connections (-> point-world? graph? )]
+  [point-world-last-pair-connected  (-> point-world? pair? )]
   
   ;part 1
   [read-positions (-> port? stream?)]
@@ -25,6 +26,9 @@
   [connected-to-vertex (-> graph? list? set?)]
   [connected-sub-graphs (-> graph? list?)]
   [their-funny-product-after-N-iterations (-> point-world? exact-nonnegative-integer? exact-nonnegative-integer?)]
+
+  ; part 2
+  [their-funny-product-after-all-connected (-> point-world? exact-nonnegative-integer?)]
   ))
 
 (define (read-positions in-port)
@@ -87,7 +91,7 @@
                 (hash-keys point-pairs-by-distance-between)
                 <)])
         
-          (point-world positions-by-number numbers-by-positions point-pairs-by-distance-between sorted-distances (undirected-graph '())))))))
+          (point-world positions-by-number numbers-by-positions point-pairs-by-distance-between sorted-distances (undirected-graph '()) #f))))))
        
       
 
@@ -112,7 +116,8 @@
              (point-world-by-position world)
              (point-world-pairs-by-distance world)
              new-remaining-distances
-             connections)))))))
+             connections
+             new-pair-to-connect)))))))
               
 (define (connected-to-vertex a-graph a-vertex)
   (define (iter so-far still-to-check)
@@ -164,4 +169,23 @@
         (* (car sizes-desc)
            (cadr sizes-desc)
            (caddr sizes-desc))))))
+
+(define (their-funny-product-after-all-connected world)
+  (define (iter world-so-far)
+    (if (=
+         (length
+          (connected-sub-graphs
+           (point-world-connections world-so-far)))
+         1)
+        (let ([x1
+               (car (car (point-world-last-pair-connected world-so-far)))]
+              [x2
+               (car (cdr (point-world-last-pair-connected world-so-far)))])
+          (* x1 x2))
+        (iter
+         (connect-closest-unconnected world-so-far))))
+
+  (iter world))
+              
+         
            
