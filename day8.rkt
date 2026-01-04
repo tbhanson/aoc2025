@@ -87,44 +87,33 @@
                 (hash-keys point-pairs-by-distance-between)
                 <)])
         
-        (point-world positions-by-number numbers-by-positions point-pairs-by-distance-between sorted-distances (undirected-graph '())))))))
+          (point-world positions-by-number numbers-by-positions point-pairs-by-distance-between sorted-distances (undirected-graph '())))))))
        
       
 
 
 ; we'll assume there are at least 2 points, because there always are in these examples
 (define (connect-closest-unconnected world)
-  (let ([points-by-position (point-world-by-position world)]
-        [connections (point-world-connections world)])
-    ;(printf "(connect-closest-unconnected world)~n")
-    ;;     (printf "  connections: ~a~n" (get-edges connections))
-    
-    (let ([first-tuple (car (hash-keys points-by-position))]
-          [second-tuple (cadr (hash-keys points-by-position))])
-           
-      (let ([first-pair-distance (distance first-tuple second-tuple)])
-        (let-values ([(closest how-close)
-                      (for*/fold ([closest-pair
-                                   (list first-tuple second-tuple)]
-                                  [closest-distance first-pair-distance])
-                                 ([t1 (hash-keys points-by-position)]
-                                  [t2 (hash-keys points-by-position)]
-                                  #:unless (equal? t1 t2)
-                                  #:unless
-                                  (has-edge? connections t1 t2))
-                        (let ([next-distance (distance t1 t2)])
-                          (if (< next-distance closest-distance)
-                              (begin
-                                ;(printf "  new closest points: ~a and ~a~n" t1 t2)
-                                (values (list t1 t2) next-distance))
-                              (values closest-pair closest-distance))))])
-          (let ([new-v1 (car closest)]
-                [new-v2 (cadr closest)])
-            (begin
-              ;(printf "  connecting ~a to ~a~n" new-v1 new-v2)
-              (add-edge! connections new-v1 new-v2)
-              world)))))))
-
+  (let ([sorted-distances (point-world-sorted-distances world)])
+    (let ([shortest-remaining-distance (car sorted-distances)]
+          [new-remaining-distances (cdr sorted-distances)]
+          [connections (point-world-connections world)])
+      ;(printf "(connect-closest-unconnected world)~n")
+      ;;     (printf "  connections: ~a~n" (get-edges connections))
+      (let ([new-pair-to-connect
+             (hash-ref (point-world-pairs-by-distance world) shortest-remaining-distance)])
+        (let ([new-v1 (car new-pair-to-connect)]
+              [new-v2 (cdr new-pair-to-connect)])
+          (begin
+            ;(printf "  connecting ~a to ~a~n" new-v1 new-v2)
+            (add-edge! connections new-v1 new-v2)
+            (point-world
+             (point-world-by-number world)
+             (point-world-by-position world)
+             (point-world-pairs-by-distance world)
+             new-remaining-distances
+             connections)))))))
+              
 (define (connected-to-vertex a-graph a-vertex)
   (define (iter so-far still-to-check)
     (if (set-empty? still-to-check)

@@ -82,36 +82,47 @@
       (check-equal?
        (their-funny-product-after-N-iterations sample-world 10)
        40)
-
       )
     ))
 
-; part 1 actual problem
-
+; some checks of timing
 
 ; cpu time: 4900 real time: 5129 gc time: 87
+(time
+ (let ([in-port
+        (open-input-file "test-data/input-day8-100.txt")])
+   
+   (let ([sample-world (read-point-world in-port)])
+     (check-equal?
+      (their-funny-product-after-N-iterations sample-world 100)
+      990)
+     )
+   ))
+
+;; (for ([in-file-name
+;;        (list
+;;         "test-data/input-day8-100.txt"
+;;         "test-data/input-day8-200.txt"
+;;         "test-data/input-day8-1.txt")])
+;;   (time
+;;    (let ([in-port
+;;           (open-input-file in-file-name)])
+;;      (let ([sample-world (read-point-world in-port)])
+;;        (printf "read sample-world with ~a points and ~a distances~n"
+;;                (length (hash-keys (point-world-by-number sample-world)))
+;;                (length (point-world-sorted-distances sample-world)))))))
+                 
+
+; part 1 actual problem
+; after improving my approach:
+; cpu time: 838 real time: 884 gc time: 144
 ;; (time
 ;;  (let ([in-port
-;;         (open-input-file "test-data/input-day8-100.txt")])
+;;         (open-input-file "test-data/input-day8-1.txt")])
 ;;    
 ;;    (let ([sample-world (read-point-world in-port)])
 ;;      (check-equal?
-;;       (their-funny-product-after-N-iterations sample-world 100)
-;;       990)
+;;       (their-funny-product-after-N-iterations sample-world 1000)
+;;       ---)
 ;;      )
 ;;    ))
-
-(for ([in-file-name
-       (list
-        "test-data/input-day8-100.txt"
-        "test-data/input-day8-200.txt"
-        "test-data/input-day8-1.txt")])
-  (time
-   (let ([in-port
-          (open-input-file in-file-name)])
-     (let ([sample-world (read-point-world in-port)])
-       (printf "read sample-world with ~a points and ~a distances~n"
-               (length (hash-keys (point-world-by-number sample-world)))
-               (length (point-world-sorted-distances sample-world)))))))
-                 
-               
