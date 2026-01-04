@@ -159,6 +159,7 @@
 ;;    ))
 
 ;; ; cpu time: 46743 real time: 47834 gc time: 2237
+; on older puter: cpu time: 88983 real time: 90882 gc time: 2541
 ;; (time
 ;;  (let ([in-port
 ;;         (open-input-file "test-data/input-day8-1.txt")])
