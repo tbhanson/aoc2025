@@ -28,3 +28,14 @@
      (max-rectangle in-port)
      50)))
 
+; part 1 full
+
+;; (time
+;;  (let ([in-port
+;;         (open-input-file "test-data/input-day9-1.txt")])
+;;    (check-equal?
+;;     (max-rectangle in-port)
+;;     --)
+;;    )
+;;  )
+
