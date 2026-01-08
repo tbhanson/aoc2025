@@ -3,30 +3,32 @@
 (require rackunit graph "day9.rkt")
 
 
-(let ([sample-input
-       (format
-        (string-append
-         "7,1~n"
-         "11,1~n"
-         "11,7~n"
-         "9,7~n"
-         "9,5~n"
-         "2,5~n"
-         "2,3~n"
-         "7,3~n"
-         ))])
-  (let ([in-port
-         (open-input-string sample-input)])
-    (check-equal?
-     (stream-first
-      (read-positions in-port))
-     (cons 7 1)))
+(define
+  sample-input
+  (format
+   (string-append
+    "7,1~n"
+    "11,1~n"
+    "11,7~n"
+    "9,7~n"
+    "9,5~n"
+    "2,5~n"
+    "2,3~n"
+    "7,3~n"
+    )))
 
-  (let ([in-port
-         (open-input-string sample-input)])
-    (check-equal?
-     (max-rectangle in-port)
-     50)))
+(let ([in-port
+       (open-input-string sample-input)])
+  (check-equal?
+   (stream-first
+    (read-positions in-port))
+   (cons 7 1)))
+
+(let ([in-port
+       (open-input-string sample-input)])
+  (check-equal?
+   (max-rectangle in-port)
+   50))
 
 ; part 1 full
 
@@ -39,3 +41,18 @@
 ;;    )
 ;;  )
 
+; part 2
+
+(check-exn
+   exn:fail?
+   (lambda () (green-from-to (cons 1 1) (cons 3 3))))
+
+(check-equal?
+ (green-from-to (cons 1 1) (cons 3 1))
+ (set (cons 2 1)))
+
+;; (let ([in-port
+;;        (open-input-string sample-input)])
+;;   (check-equal?
+;;    (max-rectangle-part-2 in-port)
+;;    24))
