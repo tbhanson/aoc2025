@@ -44,8 +44,8 @@
 ; part 2
 
 (check-exn
-   exn:fail?
-   (lambda () (green-from-to (cons 1 1) (cons 3 3))))
+ exn:fail?
+ (lambda () (green-from-to (cons 1 1) (cons 3 3))))
 
 (check-equal?
  (green-from-to (cons 1 1) (cons 3 1))
@@ -55,11 +55,20 @@
  (green-from-to (cons 3 5) (cons 3 10))
  (set (cons 3 6) (cons 3 7) (cons 3 8) (cons 3 9)))
 
- (let ([in-port
-        (open-input-string sample-input)])
-   (check-equal?
-    (set-count (boundary-green-tiles in-port))
-    22))
+(let ([in-port
+       (open-input-string sample-input)])
+  (check-equal?
+   (set-count
+    (boundary-green-tiles in-port))
+   22))
+
+(let ([in-port
+       (open-input-string sample-input)])
+  (check-equal?
+   (set-count
+    (internal-green-tiles in-port))
+   16))
+
 
 
 ;; (let ([in-port

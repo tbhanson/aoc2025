@@ -8,6 +8,7 @@
   [max-rectangle (-> port? exact-nonnegative-integer?)]
   [green-from-to (-> pair? pair? set?)]
   [boundary-green-tiles (-> port? set?)]
+  [internal-green-tiles (-> port? set?)]
   [max-rectangle-part-2 (-> port? exact-nonnegative-integer?)]
   ))
 
@@ -81,8 +82,19 @@
 
       (iter (set) first-last (stream-rest all-corners)))))
 
-      
-      
+
+; not quite sure how to do this!
+; one way might be
+; 1) to find any interior point (e.g. an uncolored one adjacent to a green border from which we can't get to an outer edge via open squares)
+; 2) call this point the frontier in a kind of A* algorithm that converts uncolored points to green until it reaches green or red points
+;
+; another way might be to sweep the entire field from left to right or top to bottom, counting "border crossings" and marking points interior which
+; are an odd number of crossings "in"
+;
+; the second approach feels easier, but I'm not sure
+;
+(define (internal-green-tiles in-port)
+  (set))
   
 (define (max-rectangle-part-2 in-port)
   0)
