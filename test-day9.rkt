@@ -21,7 +21,7 @@
        (open-input-string sample-input)])
   (check-equal?
    (stream-first
-    (read-positions in-port))
+    (read-corner-positions in-port))
    (cons 7 1)))
 
 (let ([in-port
@@ -57,22 +57,25 @@
 
 (let ([in-port
        (open-input-string sample-input)])
-  (check-equal?
-   (set-count
-    (boundary-green-tiles in-port))
-   22))
+  (let ([corner-positions (read-corner-positions in-port)])
+    (check-equal?
+     (set-count
+      (get-boundary-green-tiles corner-positions))
+     22)))
 
 (let ([in-port
        (open-input-string sample-input)])
-  (check-equal?
-   (set-count
-    (internal-green-tiles in-port))
-   16))
+  (let ([corner-positions (read-corner-positions in-port)])
+    (check-equal?
+     (set-count
+      (get-internal-green-tiles corner-positions))
+     16)))
 
 
 
-;; (let ([in-port
-;;        (open-input-string sample-input)])
-;;   (check-equal?
-;;    (max-rectangle-part-2 in-port)
-;;    24))
+  ;; (let ([in-port
+  ;;        (open-input-string sample-input)])
+  ;;   (check-equal?
+  ;;    (max-rectangle-part-2 in-port)
+  ;;    24))
+  

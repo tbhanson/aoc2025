@@ -4,15 +4,16 @@
 (provide
  (contract-out
   ;part 1
-  [read-positions (-> port? stream?)]
+  [read-corner-positions (-> port? stream?)]
   [max-rectangle (-> port? exact-nonnegative-integer?)]
   [green-from-to (-> pair? pair? set?)]
-  [boundary-green-tiles (-> port? set?)]
-  [internal-green-tiles (-> port? set?)]
+  [get-red-corners (-> stream? set?)]
+  [get-boundary-green-tiles (-> stream? set?)]
+  [get-internal-green-tiles (-> stream? set?)]
   [max-rectangle-part-2 (-> port? exact-nonnegative-integer?)]
   ))
 
-(define (read-positions in-port)
+(define (read-corner-positions in-port)
   (let ([next-line (read-line in-port)])
     (if (eof-object? next-line)
         empty-stream
@@ -22,10 +23,10 @@
                  (cons
                   (car next-tuple)
                   (cadr next-tuple))])
-            (stream-cons next-pair (read-positions in-port)))))))
+            (stream-cons next-pair (read-corner-positions in-port)))))))
 
 (define (max-rectangle in-port)
-  (let ([all-corners (read-positions in-port)])
+  (let ([all-corners (read-corner-positions in-port)])
     (for*/fold ([max-rectangle-size 0])
                ([c1 all-corners]
                 [c2 all-corners]
@@ -65,22 +66,25 @@
               (set-add result (cons x y1))))))))
         
         
+(define (get-red-corners corner-positions)
+  (list->set
+   (stream->list corner-positions)))
+
   
 
-(define (boundary-green-tiles in-port)
-  (let ([all-corners (read-positions in-port)])
-    (let ([first-last (stream-first all-corners)])
-      (define (iter green-so-far previous-corner remaining-corners)
-        (if (stream-empty? remaining-corners)
-            (set-union green-so-far (green-from-to previous-corner first-last))
-            (let ([next-corner (stream-first remaining-corners)]
-                  [new-remaining (stream-rest remaining-corners)])
-              (iter
-               (set-union green-so-far (green-from-to previous-corner next-corner))
-               next-corner
-               new-remaining))))
+(define (get-boundary-green-tiles corner-positions)
+  (let ([first-last (stream-first corner-positions)])
+    (define (iter green-so-far previous-corner remaining-corners)
+      (if (stream-empty? remaining-corners)
+          (set-union green-so-far (green-from-to previous-corner first-last))
+          (let ([next-corner (stream-first remaining-corners)]
+                [new-remaining (stream-rest remaining-corners)])
+            (iter
+             (set-union green-so-far (green-from-to previous-corner next-corner))
+             next-corner
+             new-remaining))))
 
-      (iter (set) first-last (stream-rest all-corners)))))
+    (iter (set) first-last (stream-rest corner-positions))))
 
 
 ; not quite sure how to do this!
@@ -93,8 +97,14 @@
 ;
 ; the second approach feels easier, but I'm not sure
 ;
-(define (internal-green-tiles in-port)
-  (set))
+(define (get-internal-green-tiles corner-positions)
+  (let ([red-corners (get-red-corners corner-positions)]
+        [boundary-green-tiles (get-boundary-green-tiles corner-positions)])
+    (printf "count red-corners: ~a~n" (set-count red-corners))
+    (printf "count boundary-green-tiles ~a~n" (set-count boundary-green-tiles))
+    (set)))
+    
+
   
 (define (max-rectangle-part-2 in-port)
   0)
