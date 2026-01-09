@@ -102,7 +102,33 @@
         [boundary-green-tiles (get-boundary-green-tiles corner-positions)])
     (printf "count red-corners: ~a~n" (set-count red-corners))
     (printf "count boundary-green-tiles ~a~n" (set-count boundary-green-tiles))
-    (set)))
+
+    (define (internal-green-row-x x)
+      (printf "(internal-green-row-x ~a)~n" x)
+      (let ([points-this-row
+             (stream-filter
+              (lambda (point) (= (car point) x))
+              (set->stream
+               (set-union red-corners boundary-green-tiles)))])
+        ;(printf " points-this-row: ~a~n" (stream->list points-this-row))
+        (let ([points-this-row-sorted
+               (sort
+                (stream->list points-this-row)
+                (lambda (p1 p2) (< (cdr p1) (cdr p2))))])
+          (printf " points-this-row-sorted: ~a~n" points-this-row-sorted)
+          (set))))
+    
+    (let ([max-x (for/fold ([result 0])
+                           ([next-x (stream-map car (set->stream red-corners))])
+                   (if (> next-x result) next-x result))]
+          [max-y (for/fold ([result 0])
+                           ([next-y (stream-map cdr (set->stream red-corners))])
+                   (if (> next-y result) next-y result))])
+      (printf "max-x: ~a~n" max-x)
+      (printf "max-y: ~a~n" max-y)
+      (for/fold ([result (set)])
+                ([x (in-range (+ max-x 1))])
+        (set-union result (internal-green-row-x x))))))
     
 
   
