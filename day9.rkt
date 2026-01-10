@@ -95,7 +95,9 @@
 ; another way might be to sweep the entire field from left to right or top to bottom, counting "border crossings" and marking points interior which
 ; are an odd number of crossings "in"
 ;
-; the second approach feels easier, but I'm not sure
+; the second approach feels easier, but I'm not sure.
+;
+; now I don't think the second approach works, at least not as I naively planned: 
 ;
 (define (get-internal-green-tiles corner-positions)
   (let ([red-corners (get-red-corners corner-positions)]
@@ -104,6 +106,14 @@
     (printf "count boundary-green-tiles ~a~n" (set-count boundary-green-tiles))
 
     (define (internal-green-row-x x)
+      (define (iter green-so-far greens reds state pos max-pos)
+        (if (>= pos max-pos)
+            green-so-far
+            (let ([pos-color
+            (cond [(= state 'outside)
+
+              
+            
       (printf "(internal-green-row-x ~a)~n" x)
       (let ([points-this-row
              (stream-filter
