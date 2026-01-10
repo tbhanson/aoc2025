@@ -95,8 +95,8 @@
 (define (get-internal-green-tiles corner-positions)
   (let ([red-corners (get-red-corners corner-positions)]
         [boundary-green-tiles (get-boundary-green-tiles corner-positions)])
-    ;;     (printf "count red-corners: ~a~n" (set-count red-corners))
-    ;;     (printf "count boundary-green-tiles ~a~n" (set-count boundary-green-tiles))
+    (printf "count red-corners: ~a~n" (set-count red-corners))
+    (printf "count boundary-green-tiles ~a~n" (set-count boundary-green-tiles))
     (let ([boundary-tiles (set-union red-corners boundary-green-tiles)])
       
       (define (find-internal-point)
@@ -156,6 +156,7 @@
   (let ([red-corners (get-red-corners corner-positions)]
         [boundary-green-tiles (get-boundary-green-tiles corner-positions)]
         [inner-green-tiles (get-internal-green-tiles corner-positions)])
+    (printf "count inner-green-tiles ~a~n" (set-count inner-green-tiles))
     (set-union red-corners boundary-green-tiles inner-green-tiles)))
 
 
@@ -193,6 +194,8 @@
               [y-diff (+ 1 (abs (- (cdr c1) (cdr c2))))])
           ;(printf "x-diff: ~a; y-diff: ~a~n" x-diff y-diff)
           (if (> (* x-diff y-diff) max-rectangle-size)
-              (* x-diff y-diff)
+              (begin
+                (printf "found bigger:  x-diff: ~a y-diff: ~a~n" x-diff y-diff)
+                (* x-diff y-diff))
               max-rectangle-size))))))
   

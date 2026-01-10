@@ -78,3 +78,28 @@
   (check-equal?
    (max-rectangle-part-2 in-port)
    24))
+
+; part 2 full
+
+;; (time
+;;  (let ([in-port
+;;         (open-input-file "test-data/input-day9-1.txt")])
+;;    (check-equal?
+;;     (max-rectangle-part-2 in-port)
+;;     17)
+;;    )
+;;  )
+;; 
+;; ; alas, we don't even finish collecting the inner green tiles in a reasonable amount of time!
+;; 
+;; count red-corners: 8
+;; count boundary-green-tiles 22
+;; count red-corners: 8
+;; count boundary-green-tiles 22
+;; count inner-green-tiles 16
+;; found bigger:  x-diff: 5 y-diff: 1
+;; found bigger:  x-diff: 3 y-diff: 5
+;; found bigger:  x-diff: 3 y-diff: 7
+;; found bigger:  x-diff: 8 y-diff: 3
+;; count red-corners: 496
+;; count boundary-green-tiles 590738
