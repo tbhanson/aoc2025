@@ -73,9 +73,8 @@
 
 
 
-  ;; (let ([in-port
-  ;;        (open-input-string sample-input)])
-  ;;   (check-equal?
-  ;;    (max-rectangle-part-2 in-port)
-  ;;    24))
-  
+(let ([in-port
+       (open-input-string sample-input)])
+  (check-equal?
+   (max-rectangle-part-2 in-port)
+   24))

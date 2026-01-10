@@ -10,6 +10,7 @@
   [get-red-corners (-> stream? set?)]
   [get-boundary-green-tiles (-> stream? set?)]
   [get-internal-green-tiles (-> stream? set?)]
+  [get-red-and-green-tiles (-> stream? set?)]
   [max-rectangle-part-2 (-> port? exact-nonnegative-integer?)]
   ))
 
@@ -94,8 +95,8 @@
 (define (get-internal-green-tiles corner-positions)
   (let ([red-corners (get-red-corners corner-positions)]
         [boundary-green-tiles (get-boundary-green-tiles corner-positions)])
-;;     (printf "count red-corners: ~a~n" (set-count red-corners))
-;;     (printf "count boundary-green-tiles ~a~n" (set-count boundary-green-tiles))
+    ;;     (printf "count red-corners: ~a~n" (set-count red-corners))
+    ;;     (printf "count boundary-green-tiles ~a~n" (set-count boundary-green-tiles))
     (let ([boundary-tiles (set-union red-corners boundary-green-tiles)])
       
       (define (find-internal-point)
@@ -151,7 +152,47 @@
 
       (iter (set) (list (find-internal-point))))))
                            
-      
+(define (get-red-and-green-tiles corner-positions)
+  (let ([red-corners (get-red-corners corner-positions)]
+        [boundary-green-tiles (get-boundary-green-tiles corner-positions)]
+        [inner-green-tiles (get-internal-green-tiles corner-positions)])
+    (set-union red-corners boundary-green-tiles inner-green-tiles)))
+
+
 (define (max-rectangle-part-2 in-port)
-  0)
+  (let ([all-corners (read-corner-positions in-port)])
+    (let ([red-and-green-tiles
+           (get-red-and-green-tiles all-corners)])
     
+      (define (contains-non-red-or-green? p1 p2)
+        (let ([stream-of-rectangle-points
+               (let ([x1 (car p1)]
+                     [y1 (cdr p1)]
+                     [x2 (car p2)]
+                     [y2 (cdr p2)])
+                 (let ([lo-x (min x1 x2)]
+                       [hi-x (max x1 x2)]
+                       [lo-y (min y1 y2)]
+                       [hi-y (max y1 y2)])
+                   (for*/stream ([x (in-range lo-x (+ hi-x 1))]
+                                 [y (in-range lo-y (+ hi-y 1))])
+                     (cons x y))))])
+          (not
+           (stream-andmap
+            (lambda (point) (set-member? red-and-green-tiles point))
+            stream-of-rectangle-points))))
+         
+      (for*/fold ([max-rectangle-size 0])
+                 ([c1 all-corners]
+                  [c2 all-corners]
+                  #:unless (equal? c1 c2)
+                  #:unless (contains-non-red-or-green? c1 c2))
+                
+        ;(printf "c1: ~a; c2: ~a~n" c1 c2)
+        (let ([x-diff (+ 1 (abs (- (car c1) (car c2))))]
+              [y-diff (+ 1 (abs (- (cdr c1) (cdr c2))))])
+          ;(printf "x-diff: ~a; y-diff: ~a~n" x-diff y-diff)
+          (if (> (* x-diff y-diff) max-rectangle-size)
+              (* x-diff y-diff)
+              max-rectangle-size))))))
+  
