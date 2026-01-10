@@ -38,13 +38,14 @@
         (if (> (* x-diff y-diff) max-rectangle-size)
             (* x-diff y-diff)
             max-rectangle-size)))))
-          
-(define (green-from-to p1 p2)
-  (define (assert pred anError)
-    (if (not pred) 
-        (error anError)
-        #t))
+
+(define (assert pred anError)
+  (if (not pred) 
+      (error anError)
+      #t))
   
+
+(define (green-from-to p1 p2)
   (let ([x1 (car p1)]
         [y1 (cdr p1)]
         [x2 (car p2)]
@@ -87,61 +88,70 @@
     (iter (set) first-last (stream-rest corner-positions))))
 
 
-; not quite sure how to do this!
-; one way might be
-; 1) to find any interior point (e.g. an uncolored one adjacent to a green border from which we can't get to an outer edge via open squares)
+; 1) find any interior point (e.g. to the right of a green border at the right edge (with minimal x value))
 ; 2) call this point the frontier in a kind of A* algorithm that converts uncolored points to green until it reaches green or red points
-;
-; another way might be to sweep the entire field from left to right or top to bottom, counting "border crossings" and marking points interior which
-; are an odd number of crossings "in"
-;
-; the second approach feels easier, but I'm not sure.
-;
-; now I don't think the second approach works, at least not as I naively planned: 
-;
+
 (define (get-internal-green-tiles corner-positions)
   (let ([red-corners (get-red-corners corner-positions)]
         [boundary-green-tiles (get-boundary-green-tiles corner-positions)])
-    (printf "count red-corners: ~a~n" (set-count red-corners))
-    (printf "count boundary-green-tiles ~a~n" (set-count boundary-green-tiles))
+;;     (printf "count red-corners: ~a~n" (set-count red-corners))
+;;     (printf "count boundary-green-tiles ~a~n" (set-count boundary-green-tiles))
+    (let ([boundary-tiles (set-union red-corners boundary-green-tiles)])
+      
+      (define (find-internal-point)
+        ;(printf "(find-internal-point)~n")
+        (let ([green-min-x
+               (for/fold ([result 99999])
+                         ([next-green-x
+                           (stream-map car (set->stream boundary-green-tiles))])
+                 (if (< next-green-x result) next-green-x result))])
+ 
+          (let ([left-edge-green-tiles
+                 (stream-filter
+                  (lambda (point) (= (car point) green-min-x))
+                  (set->stream boundary-green-tiles))])
+                    
+            ;(printf " left-edge-green-tiles: ~a~n" left-edge-green-tiles)
+            (let ([first-left-green (stream-first left-edge-green-tiles)])
+              (let ([hopefully-internal-point
+                     (cons (+ 1 (car first-left-green)) (cdr first-left-green))])
+                (assert (not (set-member? boundary-tiles hopefully-internal-point))
+                        (format "autschn! our candidate interior point wasn't supposed to be a boundary point, but alas it is! (~a)" hopefully-internal-point))
+                
+                ;(printf " hopefully-internal-point: ~a~n" hopefully-internal-point)
+                hopefully-internal-point)))))
 
-    (define (internal-green-row-x x)
-      (define (iter green-so-far greens reds state pos max-pos)
-        (if (>= pos max-pos)
-            green-so-far
-            (let ([pos-color
-            (cond [(= state 'outside)
+      ; iterate until we've collected all interior points
+      (define (iter interior-so-far explore-further)
+        (define (left-of-me p) (cons (- (car p) 1) (cdr p)))
+        (define (right-of-me p) (cons (+ (car p) 1) (cdr p)))
+        (define (above-me p) (cons (car p) (- (cdr p) 1)))
+        (define (below-me p) (cons (car p) (+ (cdr p) 1)))
+        
+        (if (null? explore-further)
+            interior-so-far
+            (let ([next-interior (car explore-further)]
+                  [still-to-explore (cdr explore-further)])
+              (let ([neighbors
+                     (list
+                      (left-of-me next-interior)
+                      (right-of-me next-interior)
+                      (above-me next-interior)
+                      (below-me next-interior))])
+                (let ([eligible
+                       (filter
+                        (lambda (p)
+                          (not (set-member?
+                                (set-union boundary-tiles interior-so-far)
+                                p)))
+                        neighbors)])
+                  (iter
+                   (set-add interior-so-far next-interior)
+                   (append eligible still-to-explore)))))))
 
-              
-            
-      (printf "(internal-green-row-x ~a)~n" x)
-      (let ([points-this-row
-             (stream-filter
-              (lambda (point) (= (car point) x))
-              (set->stream
-               (set-union red-corners boundary-green-tiles)))])
-        ;(printf " points-this-row: ~a~n" (stream->list points-this-row))
-        (let ([points-this-row-sorted
-               (sort
-                (stream->list points-this-row)
-                (lambda (p1 p2) (< (cdr p1) (cdr p2))))])
-          (printf " points-this-row-sorted: ~a~n" points-this-row-sorted)
-          (set))))
-    
-    (let ([max-x (for/fold ([result 0])
-                           ([next-x (stream-map car (set->stream red-corners))])
-                   (if (> next-x result) next-x result))]
-          [max-y (for/fold ([result 0])
-                           ([next-y (stream-map cdr (set->stream red-corners))])
-                   (if (> next-y result) next-y result))])
-      (printf "max-x: ~a~n" max-x)
-      (printf "max-y: ~a~n" max-y)
-      (for/fold ([result (set)])
-                ([x (in-range (+ max-x 1))])
-        (set-union result (internal-green-row-x x))))))
-    
-
-  
+      (iter (set) (list (find-internal-point))))))
+                           
+      
 (define (max-rectangle-part-2 in-port)
   0)
     
