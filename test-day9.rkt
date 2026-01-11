@@ -81,6 +81,35 @@
 
 ; part 2 full
 
+; curious about how long things take:
+; cpu time: 0 real time: 0 gc time: 0
+;; (time
+;;  (let ([in-port
+;;         (open-input-file "test-data/input-day9-1.txt")])
+;;    (let ([corner-positions (read-corner-positions in-port)])
+;;      (let ([red-corners (get-red-corners corner-positions)])
+;; 
+;;        (check-equal?
+;;         (set-count red-corners)
+;;         496)
+;;        ))))
+;; 
+;; ; cpu time: 554 real time: 559 gc time: 226
+;; (time
+;;  (let ([in-port
+;;         (open-input-file "test-data/input-day9-1.txt")])
+;;    (let ([corner-positions (read-corner-positions in-port)])
+;;      (let ([boundary-green-tiles (get-boundary-green-tiles corner-positions)])
+;; 
+;;        (check-equal?
+;;         (set-count boundary-green-tiles)
+;;         590738)
+;;        ))))
+
+
+
+        
+
 ;; (time
 ;;  (let ([in-port
 ;;         (open-input-file "test-data/input-day9-1.txt")])

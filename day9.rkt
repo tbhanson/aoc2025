@@ -88,9 +88,16 @@
 
     (iter (set) first-last (stream-rest corner-positions))))
 
-
+; this works, but is too slow for the whole problem:
 ; 1) find any interior point (e.g. to the right of a green border at the right edge (with minimal x value))
 ; 2) call this point the frontier in a kind of A* algorithm that converts uncolored points to green until it reaches green or red points
+
+; what about:
+; proceeding, perhaps greedily (from largest possible rectangle to smallest):
+; - find a point in the rectangle that is outside the green boundaries in order to reject the rectangle (cache such points to speed up future possible rejections)
+;   how? maybe start with an outer (border) point in the rectangle proceed towards the edge of the world
+;   - if we cross no boundary of our figure (no green or red tile) we are an external point
+;   - if we cross a green boundary an even number of times we are an external point
 
 (define (get-internal-green-tiles corner-positions)
   (let ([red-corners (get-red-corners corner-positions)]
