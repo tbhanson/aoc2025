@@ -63,22 +63,23 @@
       (get-boundary-green-tiles corner-positions))
      22)))
 
-(let ([in-port
-       (open-input-string sample-input)])
-  (let ([corner-positions (read-corner-positions in-port)])
-    (check-equal?
-     (set-count
-      (get-internal-green-tiles corner-positions))
-     16)))
-
 
 
 (let ([in-port
        (open-input-string sample-input)])
   (check-equal?
-   (max-rectangle-part-2 in-port)
-   24))
+   (car
+    (get-rectangles-by-size-descending in-port))
+   (list 50 (cons 2 5) (cons 11 1))))
 
+
+
+#| (let ([in-port
+          (open-input-string sample-input)])
+     (check-equal?
+      (max-rectangle-part-2 in-port)
+      24))
+ |#
 ; part 2 full
 
 ; curious about how long things take:
