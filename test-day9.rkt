@@ -79,9 +79,21 @@
     (check-equal?
      (set-count
       (get-boundary-green-tiles corner-positions))
-     22)))
+     22)
 
-
+    ; we should be able to predict their precise values given what we know
+    (check-equal?
+     (get-external-points-adjacent-to-boundary corner-positions)
+     (set
+      (cons 9 2)
+      (cons 10 4)
+      (cons 10 6)
+      (cons 10 6) ; hmmm ?
+      (cons 5 4)
+      (cons 3 4)
+      (cons 4 4)
+      (cons 8 2)))))
+    
 
 (let ([in-port
        (open-input-string sample-input)])

@@ -74,6 +74,7 @@
                       ([x (in-range (+ lo-x 1) hi-x)])
               (set-add result (cons x y1))))))))
 
+
 (define (choose-external-point-from-directed-segment p1 p2)
   ;(printf "(choose-external-point-from-directed-segment ~a ~a)~n" p1 p2)
     
@@ -144,8 +145,30 @@
 ; if we do it, right, it feels as though this can be computed much like get-boundary-green-tiles was
 ; do we first rotate the ring of corner points so we start at those with minimal x ?
 
+; actually we shouldn't need to, but success depends on whether they visit the points in a clockwise or counterclockwise direction! (I think)
+; if they go clockwise, we should compute all external points (counterclockwise all internal)
+; we could compute one way, then make sure no rectangle contains any of these points (?)
+; if it does, we could reverse the list and do it over (or reverse our rules, but that sounds harder)
+
 (define (get-external-points-adjacent-to-boundary corner-positions)
-  (set))
+  ;(printf "(get-external-points-adjacent-to-boundary (stream) ~a)~n" (stream->list corner-positions))
+  
+  (let ([first-last (stream-first corner-positions)])
+    
+    (define (iter externals-so-far previous-corner remaining-corners)
+      ;(printf "(iter ~a ~a (stream) ~a)~n" externals-so-far previous-corner (stream->list remaining-corners))
+      
+      (if (stream-empty? remaining-corners)
+          (set-add externals-so-far (choose-external-point-from-directed-segment previous-corner first-last))
+          (let ([next-corner (stream-first remaining-corners)]
+                [new-remaining (stream-rest remaining-corners)])
+            (iter
+             (set-add externals-so-far (choose-external-point-from-directed-segment previous-corner next-corner))
+             next-corner
+             new-remaining))))
+
+    (iter (set) first-last (stream-rest corner-positions))))
+
   
 (define (get-rectangles-by-size-descending in-port)
   (let ([all-corners (read-corner-positions in-port)])
@@ -171,43 +194,3 @@
   0)
 
 
-;;            
-;;             (let ([all-corners (read-corner-positions in-port)])
-;;               (let ([red-and-green-tiles
-;;                      (get-red-and-green-tiles all-corners)])
-;;     
-;;                 (define (contains-non-red-or-green? p1 p2)
-;;                   (let ([stream-of-rectangle-points
-;;                          (let ([x1 (car p1)]
-;;                                [y1 (cdr p1)]
-;;                                [x2 (car p2)]
-;;                                [y2 (cdr p2)])
-;;                            (let ([lo-x (min x1 x2)]
-;;                                  [hi-x (max x1 x2)]
-;;                                  [lo-y (min y1 y2)]
-;;                                  [hi-y (max y1 y2)])
-;;                              (for*/stream ([x (in-range lo-x (+ hi-x 1))]
-;;                                            [y (in-range lo-y (+ hi-y 1))])
-;;                                (cons x y))))])
-;;                     (not
-;;                      (stream-andmap
-;;                       (lambda (point) (set-member? red-and-green-tiles point))
-;;                       stream-of-rectangle-points))))
-;;          
-;;                 (for*/fold ([max-rectangle-size 0])
-;;                            ([c1 all-corners]
-;;                             [c2 all-corners]
-;;                             #:unless (equal? c1 c2)
-;;                             #:unless (contains-non-red-or-green? c1 c2))
-;;                 
-;;                   ;(printf "c1: ~a; c2: ~a~n" c1 c2)
-;;                   (let ([x-diff (+ 1 (abs (- (car c1) (car c2))))]
-;;                         [y-diff (+ 1 (abs (- (cdr c1) (cdr c2))))])
-;;                     ;(printf "x-diff: ~a; y-diff: ~a~n" x-diff y-diff)
-;;                     (if (> (* x-diff y-diff) max-rectangle-size)
-;;                         (begin
-;;                           ;(printf "found bigger:  x-diff: ~a y-diff: ~a~n" x-diff y-diff)
-;;                           (* x-diff y-diff))
-;;                         max-rectangle-size))))))
-;;   
-;;           
