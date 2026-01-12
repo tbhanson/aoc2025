@@ -189,20 +189,24 @@
 
 
 (define (ref-point-in-rectangle? ref p1 p2)
+  ;(printf "(ref-point-in-rectangle? ~a ~a ~a)~n" ref p1 p2)
   (let ([x1 (car p1)]
         [y1 (cdr p1)]
         [x2 (car p2)]
         [y2 (cdr p2)])
       
     (let ([lo-x (min x1 x2)]
-          [hi-x (max x1 2)]
+          [hi-x (max x1 x2)]
           [lo-y (min y1 y2)]
           [hi-y (max y1 y2)])
-      (and
-       (<= lo-x (car ref))
-       (<= (car ref) hi-x)
-       (<= lo-y (cdr ref))
-       (<= (cdr ref) hi-y)))))
+      (let ([result
+             (and
+              (<= lo-x (car ref))
+              (<= (car ref) hi-x)
+              (<= lo-y (cdr ref))
+              (<= (cdr ref) hi-y))])
+        ;(printf " : ~a~n" result)
+        result))))
        
        
 
@@ -214,15 +218,28 @@
            (set->list
             (get-external-points-adjacent-to-boundary all-corners))])
 
+      ; stream-ormap seemed more efficient but seemed only to examine one point (!?), so for now use this slower method
       (define (rectangle-contains-no-external-points sized-rectangle)
+        ;(printf "(rectangle-contains-no-external-points ~a)~n" sized-rectangle)
+        ;(printf "  (checking against ~a external points)~n" (length external-points-adjacent-to-boundary))
         (let ([p1 (cadr sized-rectangle)]
               [p2 (caddr sized-rectangle)])
-          (stream-andmap
-           (lambda (ext-pt)
-             (not (ref-point-in-rectangle? ext-pt p1 p2)))
-           external-points-adjacent-to-boundary)))
+          (let ([result
+                 (for/fold ([total-result #t])
+                           ([ext-pt external-points-adjacent-to-boundary]
+                            [counter (in-naturals 1)])
+                                    
+                   (begin
+                     ;(printf " ~a: (ref-point-in-rectangle? ~a ~a ~a)~n" counter ext-pt p1 p2)
+                     (let ([result
+                            (not (ref-point-in-rectangle? ext-pt p1 p2))])
+                       ;(printf "  ~a~n" result)
+                       (and total-result result))))])
+            ;(printf " result: ~a~n" result)
+            result)))
 
       (define (iter rectangles-not-yet-checked)
+        ;(printf "- - -~n")
         (if (null? rectangles-not-yet-checked)
             (error "oh, dear, we didn't find ANY rectangles that satisfy our constraints")
             (let ([next-rectangle-to-check (car rectangles-not-yet-checked)]

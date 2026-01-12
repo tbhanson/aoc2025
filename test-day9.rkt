@@ -88,7 +88,7 @@
       (cons 9 2)
       (cons 10 4)
       (cons 10 6)
-      (cons 10 6) ; hmmm ?
+      (cons 10 6) ; hmmm ? this is why we count only 7
       (cons 5 4)
       (cons 3 4)
       (cons 4 4)
