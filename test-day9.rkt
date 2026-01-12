@@ -97,19 +97,20 @@
 
 (let ([in-port
        (open-input-string sample-input)])
+  (let ([corner-positions (read-corner-positions in-port)])
+    (check-equal?
+     (car
+      (get-rectangles-by-size-descending corner-positions))
+     (list 50 (cons 2 5) (cons 11 1)))))
+
+
+
+(let ([in-port
+       (open-input-string sample-input)])
   (check-equal?
-   (car
-    (get-rectangles-by-size-descending in-port))
-   (list 50 (cons 2 5) (cons 11 1))))
+   (max-rectangle-part-2 in-port)
+   24))
 
-
-
-#| (let ([in-port
-          (open-input-string sample-input)])
-     (check-equal?
-      (max-rectangle-part-2 in-port)
-      24))
- |#
 ; part 2 full
 
 ; curious about how long things take:

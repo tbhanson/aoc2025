@@ -11,7 +11,7 @@
   [get-boundary-green-tiles (-> stream? set?)]
   [choose-external-point-from-directed-segment (-> pair? pair? pair?)] ; pair of points -> one point (pair of coordinates)
   [get-external-points-adjacent-to-boundary (-> stream? set?)]
-  [get-rectangles-by-size-descending (-> port? list?)]
+  [get-rectangles-by-size-descending (-> stream? list?)]
   [max-rectangle-part-2 (-> port? exact-nonnegative-integer?)]
   ))
 
@@ -97,7 +97,7 @@
              (if (= (car p2-p1) 0)
                  (cons (car p1) (+ (cdr p1) (floor (/ (cdr p2-p1) 2))))
                  (cons (+ (car p1) (floor (/ (car p2-p1) 2))) (cdr p1)))])
-            ;(printf " half-way: ~a~n" half-way)
+        ;(printf " half-way: ~a~n" half-way)
   
         (let ([result
                (cond [(equal? direction (cons 0 1))
@@ -112,11 +112,7 @@
                       (error (format "we thought direction could be only one of 4; what is this: ~a ?!" direction))])])
           result)))))
                      
-                     
-                     
 
-                 
-        
 (define (get-red-corners corner-positions)
   (list->set
    (stream->list corner-positions)))
@@ -169,28 +165,77 @@
 
     (iter (set) first-last (stream-rest corner-positions))))
 
-  
-(define (get-rectangles-by-size-descending in-port)
-  (let ([all-corners (read-corner-positions in-port)])
-    (sort
-     (for/fold ([result '()])
-               ([c1 all-corners]
-                [i1 (in-range (stream-length all-corners))])
-       (append
-        result
-        (for/list
-            ([c2 all-corners]
-             [i2 (in-range (stream-length all-corners))]
-             #:unless (>= i2 i1))
-          (let ([x-diff (+ 1 (abs (- (car c1) (car c2))))]
-                [y-diff (+ 1 (abs (- (cdr c1) (cdr c2))))])
-            (let ([rect-size (* x-diff y-diff)])
-              (list rect-size c1 c2))))))
+; produce entries that look like this: (list 50 (cons 2 5) (cons 11 1))
+; that is, size, p1, p2
 
-     (lambda (size-r1 size-r2)
-       (> (car size-r1)  (car size-r2))))))
+(define (get-rectangles-by-size-descending all-corners)
+  (sort
+   (for/fold ([result '()])
+             ([c1 all-corners]
+              [i1 (in-range (stream-length all-corners))])
+     (append
+      result
+      (for/list
+          ([c2 all-corners]
+           [i2 (in-range (stream-length all-corners))]
+           #:unless (>= i2 i1))
+        (let ([x-diff (+ 1 (abs (- (car c1) (car c2))))]
+              [y-diff (+ 1 (abs (- (cdr c1) (cdr c2))))])
+          (let ([rect-size (* x-diff y-diff)])
+            (list rect-size c1 c2))))))
+
+   (lambda (size-r1 size-r2)
+     (> (car size-r1)  (car size-r2)))))
+
+
+(define (ref-point-in-rectangle? ref p1 p2)
+  (let ([x1 (car p1)]
+        [y1 (cdr p1)]
+        [x2 (car p2)]
+        [y2 (cdr p2)])
+      
+    (let ([lo-x (min x1 x2)]
+          [hi-x (max x1 2)]
+          [lo-y (min y1 y2)]
+          [hi-y (max y1 y2)])
+      (and
+       (<= lo-x (car ref))
+       (<= (car ref) hi-x)
+       (<= lo-y (cdr ref))
+       (<= (cdr ref) hi-y)))))
+       
+       
+
 
 (define (max-rectangle-part-2 in-port)
-  0)
+  (let ([all-corners (read-corner-positions in-port)])
+    (let ([rectangles-by-size-descending (get-rectangles-by-size-descending all-corners)]
+          [external-points-adjacent-to-boundary
+           (set->list
+            (get-external-points-adjacent-to-boundary all-corners))])
+
+      (define (rectangle-contains-no-external-points sized-rectangle)
+        (let ([p1 (cadr sized-rectangle)]
+              [p2 (caddr sized-rectangle)])
+          (stream-andmap
+           (lambda (ext-pt)
+             (not (ref-point-in-rectangle? ext-pt p1 p2)))
+           external-points-adjacent-to-boundary)))
+
+      (define (iter rectangles-not-yet-checked)
+        (if (null? rectangles-not-yet-checked)
+            (error "oh, dear, we didn't find ANY rectangles that satisfy our constraints")
+            (let ([next-rectangle-to-check (car rectangles-not-yet-checked)]
+                  [remaining-rectangles-to-check (cdr rectangles-not-yet-checked)])
+              (if (rectangle-contains-no-external-points next-rectangle-to-check)
+                  (begin
+                    (printf "yippee! rectangle ~a is the one!~n" next-rectangle-to-check)
+                    (car next-rectangle-to-check) ; return size as promised
+                    )
+                  (iter remaining-rectangles-to-check)))))
+
+      (iter rectangles-by-size-descending))))
+              
 
 
+    
