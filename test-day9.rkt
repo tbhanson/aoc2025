@@ -141,17 +141,23 @@
 
 
         
-
+; cpu time: 11635 real time: 11947 gc time: 2337
 ;; (time
 ;;  (let ([in-port
 ;;         (open-input-file "test-data/input-day9-1.txt")])
 ;;    (check-equal?
 ;;     (max-rectangle-part-2 in-port)
-;;     17)
-;;    )
-;;  )
+;;     17 
+;;     )))
+
+; I get
+;; That's not the right answer; your answer is too low.
+;; If you're stuck, make sure you're using the full input data; there are also some general tips on the about page,
+;; or you can ask for hints on the subreddit. Please wait one minute before trying again. [Return to Day 9]
+
+
 ;; 
-;; ; alas, we don't even finish collecting the inner green tiles in a reasonable amount of time!
+;; ; s, we don't even finish collecting the inner green tiles in a reasonable amount of time!
 ;; 
 ;; count red-corners: 8
 ;; count boundary-green-tiles 22
