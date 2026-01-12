@@ -9,8 +9,8 @@
   [green-from-to (-> pair? pair? set?)]
   [get-red-corners (-> stream? set?)]
   [get-boundary-green-tiles (-> stream? set?)]
-  ;[get-internal-green-tiles (-> stream? set?)]
-  ;[get-red-and-green-tiles (-> stream? set?)]
+  [choose-external-point-from-directed-segment (-> pair? pair? pair?)] ; pair of points -> one point (pair of coordinates)
+  [get-external-points-adjacent-to-boundary (-> stream? set?)]
   [get-rectangles-by-size-descending (-> port? list?)]
   [max-rectangle-part-2 (-> port? exact-nonnegative-integer?)]
   ))
@@ -56,6 +56,9 @@
     (if (= x1 x2)
         (let ([lo-y (min y1 y2)]
               [hi-y (max y1 y2)])
+          (cond [(<= (- hi-y lo-y) 1)
+                 (printf "somewhat surprisingly, perhaps, ~a and ~a are only ~a apart in y direction~n" p1 p2 (- hi-y lo-y))])
+                
           (for/fold ([result (set)])
                     ([y (in-range (+ lo-y 1) hi-y)])
             (set-add result (cons x1 y))))
@@ -64,10 +67,54 @@
                   (format "hmmm, we think either x1 = x2 or y1 = y2 must obtain! (~a ~a), (~a ~a)" x1 y1 x2 y2))
           (let ([lo-x (min x1 x2)]
                 [hi-x (max x1 x2)])
+            (cond [(<= (- hi-x lo-x) 1)
+                   (printf "somewhat surprisingly, perhaps, ~a and ~a are only ~a apart in x direction~n" p1 p2 (- hi-x lo-x))])
+
             (for/fold ([result (set)])
                       ([x (in-range (+ lo-x 1) hi-x)])
               (set-add result (cons x y1))))))))
-        
+
+(define (choose-external-point-from-directed-segment p1 p2)
+  ;(printf "(choose-external-point-from-directed-segment ~a ~a)~n" p1 p2)
+    
+  (let ([p2-p1
+         (cons
+          (- (car p2) (car p1))
+          (- (cdr p2) (cdr p1)))])
+    ;(printf " p2-p1: ~a~n" p2-p1)
+    
+    (let ([direction
+           (cond [(= (car p2-p1) 0)
+                  (cons 0  (/ (cdr p2-p1) (abs (cdr p2-p1))))]
+                 [(= (cdr p2-p1) 0)
+                  (cons (/ (car p2-p1) (abs (car p2-p1))) 0)]
+                 [else
+                  (error (format "one of the two coordinates (not both) must not change (~a -> ~a)" p1 p2))])])
+      ;(printf " direction: ~a~n" direction)
+      
+      (let ([half-way
+             (if (= (car p2-p1) 0)
+                 (cons (car p1) (+ (cdr p1) (floor (/ (cdr p2-p1) 2))))
+                 (cons (+ (car p1) (floor (/ (car p2-p1) 2))) (cdr p1)))])
+            ;(printf " half-way: ~a~n" half-way)
+  
+        (let ([result
+               (cond [(equal? direction (cons 0 1))
+                      (cons (- (car half-way) 1) (cdr half-way))]
+                     [(equal? direction (cons 0 -1))
+                      (cons (+ (car half-way) 1) (cdr half-way))]
+                     [(equal? direction (cons 1 0))
+                      (cons (car half-way) (+ (cdr half-way) 1))]
+                     [(equal? direction (cons -1 0))
+                      (cons (car half-way) (- (cdr half-way) 1))]
+                     [else
+                      (error (format "we thought direction could be only one of 4; what is this: ~a ?!" direction))])])
+          result)))))
+                     
+                     
+                     
+
+                 
         
 (define (get-red-corners corner-positions)
   (list->set
@@ -94,6 +141,12 @@
 ; 2) compute rectangles (as in part 1) by size descending
 ; 3) filter these, rejecting those that contain any outside point; the first remaining should be the one we want
 
+; if we do it, right, it feels as though this can be computed much like get-boundary-green-tiles was
+; do we first rotate the ring of corner points so we start at those with minimal x ?
+
+(define (get-external-points-adjacent-to-boundary corner-positions)
+  (set))
+  
 (define (get-rectangles-by-size-descending in-port)
   (let ([all-corners (read-corner-positions in-port)])
     (sort

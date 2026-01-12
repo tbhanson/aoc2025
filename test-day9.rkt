@@ -55,6 +55,24 @@
  (green-from-to (cons 3 5) (cons 3 10))
  (set (cons 3 6) (cons 3 7) (cons 3 8) (cons 3 9)))
 
+; heading up we should be one left of halfway up...
+(check-equal?
+ (choose-external-point-from-directed-segment (cons 3 3) (cons 3 8))
+ (cons (- 3 1) (+ 3 (floor (/ (- 8 3) 2)))))
+
+(check-equal?
+ (choose-external-point-from-directed-segment (cons 3 3) (cons 10 3))
+ (cons 6 4))
+
+(check-equal?
+ (choose-external-point-from-directed-segment (cons 3 8) (cons 3 3))
+ (cons 4 5))
+
+(check-equal?
+ (choose-external-point-from-directed-segment (cons 10 3) (cons 3 3))
+ (cons 6 2))
+
+
 (let ([in-port
        (open-input-string sample-input)])
   (let ([corner-positions (read-corner-positions in-port)])
