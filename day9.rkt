@@ -177,8 +177,7 @@
       result
       (for/list
           ([c2 all-corners]
-           [i2 (in-range (stream-length all-corners))]
-           #:unless (>= i2 i1))
+           #:unless (equal? c1 c2))
         (let ([x-diff (+ 1 (abs (- (car c1) (car c2))))]
               [y-diff (+ 1 (abs (- (cdr c1) (cdr c2))))])
           (let ([rect-size (* x-diff y-diff)])
@@ -251,6 +250,10 @@
                     )
                   (iter remaining-rectangles-to-check)))))
 
+      (printf "count of all-corners: ~a~n" (stream-length all-corners))
+      (printf "count of external-points-adjacent-to-boundary: ~a~n" (set-count external-points-adjacent-to-boundary))
+      (printf "count of rectangles-by-size-descending ~a~n" (length rectangles-by-size-descending))
+      
       (iter rectangles-by-size-descending))))
               
 
