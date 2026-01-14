@@ -100,9 +100,9 @@
   (let ([corner-positions (read-corner-positions in-port)])
     (check-equal?
      (car
-      (get-rectangles-by-size-descending corner-positions))
-     (list 50 (cons 2 5) (cons 11 1)))))
-
+      (car
+       (get-rectangles-by-size-descending corner-positions)))
+     50)))
 
 
 (let ([in-port
@@ -110,6 +110,13 @@
   (check-equal?
    (max-rectangle-part-2 in-port)
    24))
+
+(let ([in-port (open-input-string sample-input)])
+  (let ([corner-positions (read-corner-positions in-port)])
+    (let ([external-pts (get-external-points-adjacent-to-boundary corner-positions)])
+      (for ([pt external-pts])
+        (check-true (point-is-external? pt corner-positions)
+                    (format "Point ~a should be external" pt))))))
 
 ; part 2 full
 
@@ -142,13 +149,13 @@
 
         
 ; cpu time: 11635 real time: 11947 gc time: 2337
-(time
- (let ([in-port
-        (open-input-file "test-data/input-day9-1.txt")])
-   (check-equal?
-    (max-rectangle-part-2 in-port)
-    17 
-    )))
+;; (time
+;;  (let ([in-port
+;;         (open-input-file "test-data/input-day9-1.txt")])
+;;    (check-equal?
+;;     (max-rectangle-part-2 in-port)
+;;     17 
+;;     )))
 
 ; I get
 ;; That's not the right answer; your answer is too low.

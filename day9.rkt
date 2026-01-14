@@ -13,6 +13,8 @@
   [get-external-points-adjacent-to-boundary (-> stream? set?)]
   [get-rectangles-by-size-descending (-> stream? list?)]
   [max-rectangle-part-2 (-> port? exact-nonnegative-integer?)]
+  ; attempted sanity checking with help from claude.ai
+  [point-is-external? (-> pair? stream? boolean?)]
   ))
 
 (define (read-corner-positions in-port)
@@ -257,5 +259,43 @@
       (iter rectangles-by-size-descending))))
               
 
+; discussing with claude.ai what might be going wrong with my approach, one theory came up:
+; perhaps some of my "external" points are not external (?).
+; I wondered whether we can test them, e.g. by tracing to edge of containing region and counting crossings.
+; this is the code claude.ai volunteered
+; I have (emperically backed) doubts as to whether the code works.
+; will test against known internal and external points in their small test case
 
+(define (point-is-external? pt corner-positions)
+  (let ([boundary-segments (get-boundary-segments corner-positions)])
+    ;; Cast ray from pt to the right (toward +infinity in x)
+    ;; Count crossings with boundary segments
+    (let ([crossings
+           (for/sum ([seg boundary-segments])
+             (if (ray-crosses-segment? pt seg) 1 0))])
+      (even? crossings))))  ; even crossings = outside
+
+(define (get-boundary-segments corner-positions)
+  ;; Returns list of pairs: ((p1 . p2) (p2 . p3) ... (pN . p1))
+  (let ([corners (stream->list corner-positions)])
+    (for/list ([i (length corners)])
+      (cons (list-ref corners i) 
+            (list-ref corners (modulo (+ i 1) (length corners)))))))
+
+(define (ray-crosses-segment? pt seg)
+  (let ([px (car pt)]
+        [py (cdr pt)]
+        [x1 (car (car seg))]
+        [y1 (cdr (car seg))]
+        [x2 (car (cdr seg))]
+        [y2 (cdr (cdr seg))])
+    ;; Ray goes from (px, py) to (+infinity, py)
+    ;; Check if segment crosses this horizontal ray
+    (and
+     ;; Segment must straddle the ray's y-coordinate
+     (or (and (<= y1 py) (> y2 py))
+         (and (<= y2 py) (> y1 py)))
+     ;; Intersection must be to the right of pt
+     (let ([x-intersect (+ x1 (* (- x2 x1) (/ (- py y1) (- y2 y1))))])
+       (> x-intersect px)))))
     
