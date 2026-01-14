@@ -102,16 +102,25 @@
         ;(printf " half-way: ~a~n" half-way)
   
         (let ([result
-               (cond [(equal? direction (cons 0 1))
-                      (cons (- (car half-way) 1) (cdr half-way))]
-                     [(equal? direction (cons 0 -1))
-                      (cons (+ (car half-way) 1) (cdr half-way))]
-                     [(equal? direction (cons 1 0))
-                      (cons (car half-way) (+ (cdr half-way) 1))]
-                     [(equal? direction (cons -1 0))
-                      (cons (car half-way) (- (cdr half-way) 1))]
-                     [else
-                      (error (format "we thought direction could be only one of 4; what is this: ~a ?!" direction))])])
+               (cond ; (reverse handedness, with help from claude.ai)
+                 [(equal? direction (cons 0 1))   ; moving up (north)
+                  (cons (+ (car half-way) 1) (cdr half-way))]  ; go RIGHT instead of left
+                 [(equal? direction (cons 0 -1))  ; moving down (south)
+                  (cons (- (car half-way) 1) (cdr half-way))]  ; go LEFT instead of right
+                 [(equal? direction (cons 1 0))   ; moving right (east)
+                  (cons (car half-way) (- (cdr half-way) 1))]  ; go DOWN instead of up
+                 [(equal? direction (cons -1 0))  ; moving left (west)
+                  (cons (car half-way) (+ (cdr half-way) 1))]  ; go UP instead of down
+                 ;;                (cond [(equal? direction (cons 0 1))
+                 ;;                       (cons (- (car half-way) 1) (cdr half-way))]
+                 ;;                      [(equal? direction (cons 0 -1))
+                 ;;                       (cons (+ (car half-way) 1) (cdr half-way))]
+                 ;;                      [(equal? direction (cons 1 0))
+                 ;;                       (cons (car half-way) (+ (cdr half-way) 1))]
+                 ;;                      [(equal? direction (cons -1 0))
+                 ;;                       (cons (car half-way) (- (cdr half-way) 1))]
+                 [else
+                  (error (format "we thought direction could be only one of 4; what is this: ~a ?!" direction))])])
           result)))))
                      
 
@@ -285,17 +294,22 @@
 (define (ray-crosses-segment? pt seg)
   (let ([px (car pt)]
         [py (cdr pt)]
+        [p1 (car seg)]
+        [p2 (cdr seg)]
         [x1 (car (car seg))]
         [y1 (cdr (car seg))]
         [x2 (car (cdr seg))]
         [y2 (cdr (cdr seg))])
-    ;; Ray goes from (px, py) to (+infinity, py)
-    ;; Check if segment crosses this horizontal ray
-    (and
-     ;; Segment must straddle the ray's y-coordinate
-     (or (and (<= y1 py) (> y2 py))
-         (and (<= y2 py) (> y1 py)))
-     ;; Intersection must be to the right of pt
-     (let ([x-intersect (+ x1 (* (- x2 x1) (/ (- py y1) (- y2 y1))))])
-       (> x-intersect px)))))
     
+    ;; Skip horizontal segments (parallel to ray)
+    (cond
+      [(= y1 y2) #f]
+      ;; Check if segment straddles ray's y-coordinate
+      [(not (or (and (< y1 py) (>= y2 py))
+                (and (< y2 py) (>= y1 py))))
+       #f]
+      ;; Calculate x-coordinate where segment crosses ray
+      [else
+       (let ([x-intersect (+ x1 (/ (* (- py y1) (- x2 x1)) 
+                                   (- y2 y1)))])
+         (>= x-intersect px))])))

@@ -58,19 +58,19 @@
 ; heading up we should be one left of halfway up...
 (check-equal?
  (choose-external-point-from-directed-segment (cons 3 3) (cons 3 8))
- (cons (- 3 1) (+ 3 (floor (/ (- 8 3) 2)))))
-
-(check-equal?
- (choose-external-point-from-directed-segment (cons 3 3) (cons 10 3))
- (cons 6 4))
-
-(check-equal?
- (choose-external-point-from-directed-segment (cons 3 8) (cons 3 3))
  (cons 4 5))
 
 (check-equal?
- (choose-external-point-from-directed-segment (cons 10 3) (cons 3 3))
+ (choose-external-point-from-directed-segment (cons 3 3) (cons 10 3))
  (cons 6 2))
+
+(check-equal?
+ (choose-external-point-from-directed-segment (cons 3 8) (cons 3 3))
+ (cons 2 5))
+
+(check-equal?
+ (choose-external-point-from-directed-segment (cons 10 3) (cons 3 3))
+ (cons 6 4))
 
 
 (let ([in-port
@@ -84,16 +84,7 @@
     ; we should be able to predict their precise values given what we know
     (check-equal?
      (get-external-points-adjacent-to-boundary corner-positions)
-     (set
-      (cons 9 2)
-      (cons 10 4)
-      (cons 10 6)
-      (cons 10 6) ; hmmm ? this is why we count only 7
-      (cons 5 4)
-      (cons 3 4)
-      (cons 4 4)
-      (cons 8 2)))))
-    
+     (set '(12 . 4) '(10 . 8) '(1 . 4) '(4 . 2) '(6 . 2) '(9 . 0) '(5 . 6) '(8 . 6)))))    
 
 (let ([in-port
        (open-input-string sample-input)])
