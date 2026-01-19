@@ -12,6 +12,7 @@
   [read-manual-line-bits-parsed (-> port? stream?)]
   [toggle-switches (-> string? (listof number?) string?)]
   [fewest-presses (-> string? list? exact-nonnegative-integer?)]
+  [total-button-presses (-> port? exact-nonnegative-integer?)]
   ))
 
 (define (assert pred anError)
@@ -88,7 +89,15 @@
       (breadth-first initial-state button-choices '()))))
 
 
-
+(define (total-button-presses in-port)
+  (let ([stream-of-parsed-lines
+         (read-manual-line-bits-parsed in-port)])
+    (for/fold ([result 0])
+              ([next-parsed-line stream-of-parsed-lines])
+      (let ([light-goal (car next-parsed-line)]
+            [button-choices (cadr next-parsed-line)])
+        (+ result (fewest-presses light-goal button-choices))))))
+    
 
 ; claude's suggestion when I asked for help using a lexter and a parser
 

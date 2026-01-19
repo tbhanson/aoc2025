@@ -73,3 +73,9 @@
  (fewest-presses ".###.#" '((0 1 2 3 4) (0 3 4) (0 1 2 4 5) (1 2)))
  2)
 
+; total-button-presses
+(let ([in-port
+       (open-input-string sample-input)])
+  (check-equal?
+   (total-button-presses in-port)
+   7))
