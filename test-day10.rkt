@@ -2,6 +2,15 @@
 
 (require rackunit graph "day10.rkt")
 
+(require parser-tools/lex)
+
+
+;; (let ([in (open-input-string "[.##.] (3)")])
+;;   (let loop ()
+;;     (let ([tok (manual-lexer in)])
+;;       (unless (token-EOF? tok)
+;;         (printf "~a~n" tok)
+;;         (loop)))))
 
 (define
   sample-input
@@ -12,23 +21,24 @@
     "[.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}~n"
     )))
 
+; test alternative approach claude.ai suggested in response to my question
 (let ([in-port
        (open-input-string sample-input)])
   (let ([first-parsed-line
          (stream-first
-          (read-manual-line-bits in-port))])
+          (read-manual-line-bits-parsed in-port))])
          
     (check-equal?
-     (cadr first-parsed-line)
-     "[.##.]")
-
+     (car first-parsed-line)  ; the pattern
+     ".##.")
+    
     (check-equal?
-     (caddr first-parsed-line)
-     "(3) (1,3) (2) (2,3) (0,2) (0,1)")
-
+     (cadr first-parsed-line)  ; the tuple list
+     '((3) (1 3) (2) (2 3) (0 2) (0 1)))
+    
     (check-equal?
-     (cadddr first-parsed-line)
-     "{3,5,4,7}")
+     (caddr first-parsed-line)  ; the number set
+     '(3 5 4 7))
 
-  ))
+    ))
 
