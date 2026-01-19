@@ -11,6 +11,7 @@
   [manual-lexer (-> port? stream?)]
   [read-manual-line-bits-parsed (-> port? stream?)]
   [toggle-switches (-> string? (listof number?) string?)]
+  [fewest-presses (-> string? list? exact-nonnegative-integer?)]
   ))
 
 (define (assert pred anError)
@@ -55,7 +56,39 @@
      (reverse
       (iter '() 0 (string->list initial-state-string))))
     
-     ))
+    ))
+
+; how does one find the fewest ?! one can imagine a graph from our initial state, all lights off. if our goal state is all lights off we're finished with 0
+; then we could imagine states we reach by applying each singled button, these are distance one from the beginning state; from each of these we could imagine ...
+; how about a tree of N levels, where N is the number of buttons?
+; 
+(define (fewest-presses state-to-reach button-choices)
+  (define (breadth-first state-to-here remaining-button-choices buttons-tried-so-far)
+    (cond [(string=? state-to-here state-to-reach)
+           (length buttons-tried-so-far)]
+
+          [(null? remaining-button-choices)
+           +inf.0] ; we have nothing left to try on this branch
+
+          [else
+           (for/fold ([result +inf.0])
+                     ([next-button remaining-button-choices])
+             (let ([suppose-next-button
+                    (breadth-first
+                     (toggle-switches state-to-here next-button)
+                     (remove next-button remaining-button-choices)
+                     (cons next-button buttons-tried-so-far))])
+               (if (< suppose-next-button result)
+                   suppose-next-button
+                   result)))]))
+
+  (let ([state-length (string-length state-to-reach)])
+    (let ([initial-state (make-string state-length #\.)])
+        
+      (breadth-first initial-state button-choices '()))))
+
+
+
 
 ; claude's suggestion when I asked for help using a lexter and a parser
 
