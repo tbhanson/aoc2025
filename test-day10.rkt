@@ -5,13 +5,6 @@
 (require parser-tools/lex)
 
 
-;; (let ([in (open-input-string "[.##.] (3)")])
-;;   (let loop ()
-;;     (let ([tok (manual-lexer in)])
-;;       (unless (token-EOF? tok)
-;;         (printf "~a~n" tok)
-;;         (loop)))))
-
 (define
   sample-input
   (format
@@ -42,3 +35,11 @@
 
     ))
 
+; test toggle-switches
+(check-equal?
+ (toggle-switches "." '(0))
+ "#")
+
+(check-equal?
+ (toggle-switches "..#" '(0 2))
+ "#..")

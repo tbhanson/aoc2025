@@ -8,16 +8,54 @@
 (provide
  (contract-out
   ;part 1
-  ;[read-manual-line-bits (-> port? stream?)]
-  ;[manual-lexer]
+  [manual-lexer (-> port? stream?)]
   [read-manual-line-bits-parsed (-> port? stream?)]
+  [toggle-switches (-> string? (listof number?) string?)]
   ))
 
-(provide manual-lexer)
-;(provide parse-manual-line read-manual-line-bits-parsed)
+(define (assert pred anError)
+  (if (not pred) 
+      (error anError)
+      #t))
 
+(define (toggle-switches initial-state-string toggle-positions)
+  (define (toggle-one state-char)
+    (cond [(equal? #\. state-char)
+           #\#]
 
+          [(equal? #\# state-char)
+           #\.]
 
+          [else (error (format "toggle-one only knows how to toggle between . and #, not ~a" state-char))]))
+
+  (define (iter result-so-far pos initial-remaining)
+    (if (null? initial-remaining)
+        result-so-far
+        (let ([next-char (car initial-remaining)]
+              [still-remaining (cdr initial-remaining)])
+          (iter
+           (cons
+            (if (member pos toggle-positions)
+                (toggle-one next-char)
+                next-char)
+            result-so-far)
+           (+ pos 1)
+           still-remaining))))
+          
+  (let ([state-length (string-length initial-state-string)])
+    (assert (stream-andmap
+             (lambda (num) (<= num state-length))
+             toggle-positions)
+            (format "ouch: all of these positions: ~a should be less than or equal to ~a (length of ~a), but at least one isn't!"
+                    toggle-positions
+                    state-length
+                    initial-state-string))
+
+    (list->string
+     (reverse
+      (iter '() 0 (string->list initial-state-string))))
+    
+     ))
 
 ; claude's suggestion when I asked for help using a lexter and a parser
 
@@ -25,11 +63,11 @@
 (define-tokens value-tokens (NUMBER PATTERN))
 (define-empty-tokens op-tokens
   (LBRACKET RBRACKET
-   LPAREN RPAREN
-   LBRACE RBRACE
-   COMMA
-   DOT HASH
-   EOF))
+            LPAREN RPAREN
+            LBRACE RBRACE
+            COMMA
+            DOT HASH
+            EOF))
 
 ;; Lexer
 (define manual-lexer
