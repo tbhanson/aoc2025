@@ -44,7 +44,7 @@
  (toggle-switches "..#" '(0 2))
  "#..")
 
-; fewest-presses
+;; ; fewest-presses
 (check-equal?
  (fewest-presses "." '((0)))
  0)
@@ -73,6 +73,12 @@
  (fewest-presses ".###.#" '((0 1 2 3 4) (0 3 4) (0 1 2 4 5) (1 2)))
  2)
 
+;; line 4 of full input; our method doesn't seem to work here!
+;; [.###.] (1,2,4) (0,2,4) (0,1,3,4) (2,4) {23,23,40,3,43}
+(check-equal?
+ (fewest-presses ".###." '((1 2 4) (0 2 4) (0 1 3 4) (2 4)))
+ 2)
+
 ; total-button-presses
 (let ([in-port
        (open-input-string sample-input)])
@@ -80,11 +86,17 @@
    (total-button-presses in-port)
    7))
 
-; full input
+; get more systematic and sophisticated
+(check-equal?
+  (paths-from "." '((0)) 0)
+  (make-immutable-hash (list (cons "." '()))))
 
-(time
- (let ([in-port
-        (open-input-file "test-data/input-day10-1.txt")])
-   (check-equal?
-    (total-button-presses in-port)
-    7)))
+; full input - line 1 already takes too long!!
+
+; try first 10 lines 
+;; (time
+;;  (let ([in-port
+;;         (open-input-file "test-data/input-day10-10.txt")])
+;;    (check-equal?
+;;     (total-button-presses in-port)
+;;     7)))

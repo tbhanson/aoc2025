@@ -12,6 +12,8 @@
   [read-manual-line-bits-parsed (-> port? stream?)]
   [toggle-switches (-> string? (listof number?) string?)]
   [fewest-presses (-> string? list? exact-nonnegative-integer?)]
+  [paths-from (-> string? list? exact-nonnegative-integer? hash?)]
+  [find-shortest-path (-> string? list? exact-nonnegative-integer?)]
   [total-button-presses (-> port? exact-nonnegative-integer?)]
   ))
 
@@ -59,14 +61,44 @@
     
     ))
 
-; how does one find the fewest ?! one can imagine a graph from our initial state, all lights off. if our goal state is all lights off we're finished with 0
-; then we could imagine states we reach by applying each singled button, these are distance one from the beginning state; from each of these we could imagine ...
-; how about a tree of N levels, where N is the number of buttons?
-; 
+; build a hash of states we've been able to reach from an initial state with at most depth steps
+(define (paths-from starting-state button-choices max-depth)
+  ; collect reachable states and paths to them from starting state
+  (for/fold ([result (make-immutable-hash (list (cons starting-state '())))])
+            ([depth (in-range max-depth)])
+    ; expand from frontier, which means those parts of result at distance depth from the start
+    (for*/fold ([new-result result])
+              ([next-move button-choices]
+               [next-state (hash-keys result)]
+               #:when (= depth (length (hash-ref result next-state))))
+      (let ([next-candidate-state (toggle-switches next-state next-move)])
+        ; have we seen this already?
+        (cond [(hash-has-key? result next-candidate-state)
+               (let ([previous-path-length (length (hash-ref result next-candidate-state))]
+                     [this-path-length (+ 1 (length (hash-ref result next-state)))])
+                 ; is this route shorter? (if yes, record shorter path, else leave alone)
+                 (if (< this-path-length previous-path-length)
+                     (hash-set new-result next-candidate-state (cons next-move (hash-ref result next-state)))
+                     new-result))]
+
+              [else
+               (hash-set new-result next-candidate-state (cons next-move (hash-ref result next-state)))])))))
+                   
+             
+      
+  
+
+(define (find-shortest-path state-to-reach button-choices)
+  '())
+
 (define (fewest-presses state-to-reach button-choices)
   (define (breadth-first state-to-here remaining-button-choices buttons-tried-so-far)
+    ;(printf "(breadth-first ~a ~a ~a)~n" state-to-here remaining-button-choices buttons-tried-so-far)
     (cond [(string=? state-to-here state-to-reach)
-           (length buttons-tried-so-far)]
+           (let ([result
+                  (length buttons-tried-so-far)])
+             ;(printf " result: ~a~n" result)
+             result)]
 
           [(null? remaining-button-choices)
            +inf.0] ; we have nothing left to try on this branch
@@ -97,6 +129,7 @@
                [line-number (in-naturals 1)])
       (let ([light-goal (car next-parsed-line)]
             [button-choices (cadr next-parsed-line)])
+        (printf "line ~a light-goal: ~a; button-choices: ~a~n" line-number light-goal button-choices)
         (time
          (let ([sub-total
                 (fewest-presses light-goal button-choices)])
