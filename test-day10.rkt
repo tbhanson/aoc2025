@@ -79,3 +79,12 @@
   (check-equal?
    (total-button-presses in-port)
    7))
+
+; full input
+
+(time
+ (let ([in-port
+        (open-input-file "test-data/input-day10-1.txt")])
+   (check-equal?
+    (total-button-presses in-port)
+    7)))

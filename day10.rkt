@@ -93,11 +93,16 @@
   (let ([stream-of-parsed-lines
          (read-manual-line-bits-parsed in-port)])
     (for/fold ([result 0])
-              ([next-parsed-line stream-of-parsed-lines])
+              ([next-parsed-line stream-of-parsed-lines]
+               [line-number (in-naturals 1)])
       (let ([light-goal (car next-parsed-line)]
             [button-choices (cadr next-parsed-line)])
-        (+ result (fewest-presses light-goal button-choices))))))
-    
+        (time
+         (let ([sub-total
+                (fewest-presses light-goal button-choices)])
+           (printf "line ~a subtotal: ~a~n" line-number sub-total)
+           (+ result sub-total)))))))
+           
 
 ; claude's suggestion when I asked for help using a lexter and a parser
 
