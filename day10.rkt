@@ -13,6 +13,7 @@
   [toggle-switches (-> string? (listof number?) string?)]
   [fewest-presses (-> string? list? exact-nonnegative-integer?)]
   [paths-from (-> string? list? exact-nonnegative-integer? hash?)]
+  [paths-from-with-hash (-> string? list? exact-nonnegative-integer? hash? hash?)]
   [find-shortest-path (-> string? list? exact-nonnegative-integer?)]
   [total-button-presses (-> port? exact-nonnegative-integer?)]
   ))
@@ -63,165 +64,174 @@
 
 ; build a hash of states we've been able to reach from an initial state with at most depth steps
 (define (paths-from starting-state button-choices max-depth)
-  ; collect reachable states and paths to them from starting state
-  (for/fold ([result (make-immutable-hash (list (cons starting-state '())))])
-            ([depth (in-range max-depth)])
-    ; expand from frontier, which means those parts of result at distance depth from the start
-    (for*/fold ([new-result result])
-              ([next-move button-choices]
-               [next-state (hash-keys result)]
-               #:when (= depth (length (hash-ref result next-state))))
-      (let ([next-candidate-state (toggle-switches next-state next-move)])
-        ; have we seen this already?
-        (cond [(hash-has-key? result next-candidate-state)
-               (let ([previous-path-length (length (hash-ref result next-candidate-state))]
-                     [this-path-length (+ 1 (length (hash-ref result next-state)))])
-                 ; is this route shorter? (if yes, record shorter path, else leave alone)
-                 (if (< this-path-length previous-path-length)
-                     (hash-set new-result next-candidate-state (cons next-move (hash-ref result next-state)))
-                     new-result))]
-
-              [else
-               (hash-set new-result next-candidate-state (cons next-move (hash-ref result next-state)))])))))
+  (paths-from-with-hash starting-state button-choices max-depth (make-immutable-hash (list (cons starting-state '())))))
                    
-             
-      
+; build a version that can start after already exploring some (hash-til-now)
+(define (paths-from-with-hash starting-state button-choices max-depth hash-til-now)
+  (let ([depth-so-far
+         (for/fold ([result 0])
+                   ([next-node-path (hash-values hash-til-now)])
+           (if (> (length next-node-path) result)
+               (length next-node-path)
+               result))])
+    (for/fold ([result hash-til-now])
+              ([depth (in-range depth-so-far max-depth)])
+      ; expand from frontier, which means those parts of result at distance depth from the start
+      (for*/fold ([new-result result])
+                 ([next-move button-choices]
+                  [next-state (hash-keys result)]
+                  #:when (= depth (length (hash-ref result next-state))))
+        (let ([next-candidate-state (toggle-switches next-state next-move)])
+          ; have we seen this already?
+          (cond [(hash-has-key? result next-candidate-state)
+                 (let ([previous-path-length (length (hash-ref result next-candidate-state))]
+                       [this-path-length (+ 1 (length (hash-ref result next-state)))])
+                   ; is this route shorter? (if yes, record shorter path, else leave alone)
+                   (if (< this-path-length previous-path-length)
+                       (hash-set new-result next-candidate-state (cons next-move (hash-ref result next-state)))
+                       new-result))]
+
+                [else
+                 (hash-set new-result next-candidate-state (cons next-move (hash-ref result next-state)))]))))))
+
+    
   
 
-(define (find-shortest-path state-to-reach button-choices)
-  '())
+  (define (find-shortest-path state-to-reach button-choices)
+    '())
 
-(define (fewest-presses state-to-reach button-choices)
-  (define (breadth-first state-to-here remaining-button-choices buttons-tried-so-far)
-    ;(printf "(breadth-first ~a ~a ~a)~n" state-to-here remaining-button-choices buttons-tried-so-far)
-    (cond [(string=? state-to-here state-to-reach)
-           (let ([result
-                  (length buttons-tried-so-far)])
-             ;(printf " result: ~a~n" result)
-             result)]
+  (define (fewest-presses state-to-reach button-choices)
+    (define (breadth-first state-to-here remaining-button-choices buttons-tried-so-far)
+      ;(printf "(breadth-first ~a ~a ~a)~n" state-to-here remaining-button-choices buttons-tried-so-far)
+      (cond [(string=? state-to-here state-to-reach)
+             (let ([result
+                    (length buttons-tried-so-far)])
+               ;(printf " result: ~a~n" result)
+               result)]
 
-          [(null? remaining-button-choices)
-           +inf.0] ; we have nothing left to try on this branch
+            [(null? remaining-button-choices)
+             +inf.0] ; we have nothing left to try on this branch
 
-          [else
-           (for/fold ([result +inf.0])
-                     ([next-button remaining-button-choices])
-             (let ([suppose-next-button
-                    (breadth-first
-                     (toggle-switches state-to-here next-button)
-                     (remove next-button remaining-button-choices)
-                     (cons next-button buttons-tried-so-far))])
-               (if (< suppose-next-button result)
-                   suppose-next-button
-                   result)))]))
+            [else
+             (for/fold ([result +inf.0])
+                       ([next-button remaining-button-choices])
+               (let ([suppose-next-button
+                      (breadth-first
+                       (toggle-switches state-to-here next-button)
+                       (remove next-button remaining-button-choices)
+                       (cons next-button buttons-tried-so-far))])
+                 (if (< suppose-next-button result)
+                     suppose-next-button
+                     result)))]))
 
-  (let ([state-length (string-length state-to-reach)])
-    (let ([initial-state (make-string state-length #\.)])
+    (let ([state-length (string-length state-to-reach)])
+      (let ([initial-state (make-string state-length #\.)])
         
-      (breadth-first initial-state button-choices '()))))
+        (breadth-first initial-state button-choices '()))))
 
 
-(define (total-button-presses in-port)
-  (let ([stream-of-parsed-lines
-         (read-manual-line-bits-parsed in-port)])
-    (for/fold ([result 0])
-              ([next-parsed-line stream-of-parsed-lines]
-               [line-number (in-naturals 1)])
-      (let ([light-goal (car next-parsed-line)]
-            [button-choices (cadr next-parsed-line)])
-        (printf "line ~a light-goal: ~a; button-choices: ~a~n" line-number light-goal button-choices)
-        (time
-         (let ([sub-total
-                (fewest-presses light-goal button-choices)])
-           (printf "line ~a subtotal: ~a~n" line-number sub-total)
-           (+ result sub-total)))))))
+  (define (total-button-presses in-port)
+    (let ([stream-of-parsed-lines
+           (read-manual-line-bits-parsed in-port)])
+      (for/fold ([result 0])
+                ([next-parsed-line stream-of-parsed-lines]
+                 [line-number (in-naturals 1)])
+        (let ([light-goal (car next-parsed-line)]
+              [button-choices (cadr next-parsed-line)])
+          (printf "line ~a light-goal: ~a; button-choices: ~a~n" line-number light-goal button-choices)
+          (time
+           (let ([sub-total
+                  (fewest-presses light-goal button-choices)])
+             (printf "line ~a subtotal: ~a~n" line-number sub-total)
+             (+ result sub-total)))))))
            
 
-; claude's suggestion when I asked for help using a lexter and a parser
+  ; claude's suggestion when I asked for help using a lexter and a parser
 
-;; Token definitions
-(define-tokens value-tokens (NUMBER PATTERN))
-(define-empty-tokens op-tokens
-  (LBRACKET RBRACKET
-            LPAREN RPAREN
-            LBRACE RBRACE
-            COMMA
-            DOT HASH
-            EOF))
+  ;; Token definitions
+  (define-tokens value-tokens (NUMBER PATTERN))
+  (define-empty-tokens op-tokens
+    (LBRACKET RBRACKET
+              LPAREN RPAREN
+              LBRACE RBRACE
+              COMMA
+              DOT HASH
+              EOF))
 
-;; Lexer
-(define manual-lexer
-  (lexer
-   ;; Whitespace
-   [(:or #\space #\tab #\newline) (manual-lexer input-port)]
+  ;; Lexer
+  (define manual-lexer
+    (lexer
+     ;; Whitespace
+     [(:or #\space #\tab #\newline) (manual-lexer input-port)]
    
-   ;; Brackets and parens
-   ["[" (token-LBRACKET)]
-   ["]" (token-RBRACKET)]
-   ["(" (token-LPAREN)]
-   [")" (token-RPAREN)]
-   ["{" (token-LBRACE)]
-   ["}" (token-RBRACE)]
+     ;; Brackets and parens
+     ["[" (token-LBRACKET)]
+     ["]" (token-RBRACKET)]
+     ["(" (token-LPAREN)]
+     [")" (token-RPAREN)]
+     ["{" (token-LBRACE)]
+     ["}" (token-RBRACE)]
    
-   ;; Comma
-   ["," (token-COMMA)]
+     ;; Comma
+     ["," (token-COMMA)]
    
-   ;; Pattern characters (inside brackets)
-   ["." (token-DOT)]
-   ["#" (token-HASH)]
+     ;; Pattern characters (inside brackets)
+     ["." (token-DOT)]
+     ["#" (token-HASH)]
    
-   ;; Numbers
-   [(:+ (:or (:/ #\0 #\9))) (token-NUMBER (string->number lexeme))]
+     ;; Numbers
+     [(:+ (:or (:/ #\0 #\9))) (token-NUMBER (string->number lexeme))]
    
-   ;; EOF
-   [(eof) (token-EOF)]))
+     ;; EOF
+     [(eof) (token-EOF)]))
 
-;; Parser
-(define manual-parser
-  (parser
-   (start line)
-   (end EOF)
-   (tokens value-tokens op-tokens)
-   (error (lambda (tok-ok? tok-name tok-value)
-            (error 'parse "unexpected token: ~a" tok-name)))
+  ;; Parser
+  (define manual-parser
+    (parser
+     (start line)
+     (end EOF)
+     (tokens value-tokens op-tokens)
+     (error (lambda (tok-ok? tok-name tok-value)
+              (error 'parse "unexpected token: ~a" tok-name)))
    
-   (grammar
+     (grammar
     
-    ;; A complete line
-    (line [(pattern tuple-list number-set)
-           (list $1 $2 $3)])
+      ;; A complete line
+      (line [(pattern tuple-list number-set)
+             (list $1 $2 $3)])
     
-    ;; Pattern: [.##.]
-    (pattern [(LBRACKET pattern-chars RBRACKET)
-              (list->string $2)])
+      ;; Pattern: [.##.]
+      (pattern [(LBRACKET pattern-chars RBRACKET)
+                (list->string $2)])
     
-    (pattern-chars [() '()]
-                   [(DOT pattern-chars) (cons #\. $2)]
-                   [(HASH pattern-chars) (cons #\# $2)])
+      (pattern-chars [() '()]
+                     [(DOT pattern-chars) (cons #\. $2)]
+                     [(HASH pattern-chars) (cons #\# $2)])
     
-    ;; Tuple list: (3) (1,3) (2) ...
-    (tuple-list [() '()]
-                [(tuple tuple-list) (cons $1 $2)])
+      ;; Tuple list: (3) (1,3) (2) ...
+      (tuple-list [() '()]
+                  [(tuple tuple-list) (cons $1 $2)])
     
-    (tuple [(LPAREN number-list RPAREN) $2])
+      (tuple [(LPAREN number-list RPAREN) $2])
     
-    (number-list [(NUMBER) (list $1)]
-                 [(NUMBER COMMA number-list) (cons $1 $3)])
+      (number-list [(NUMBER) (list $1)]
+                   [(NUMBER COMMA number-list) (cons $1 $3)])
     
-    ;; Number set: {3,5,4,7}
-    (number-set [(LBRACE number-list RBRACE) $2]))))
+      ;; Number set: {3,5,4,7}
+      (number-set [(LBRACE number-list RBRACE) $2]))))
 
-;; Helper to parse a single line from a string
-(define (parse-manual-line line-str)
-  (let ([in (open-input-string line-str)])
-    (manual-parser (lambda () (manual-lexer in)))))
+  ;; Helper to parse a single line from a string
+  (define (parse-manual-line line-str)
+    (let ([in (open-input-string line-str)])
+      (manual-parser (lambda () (manual-lexer in)))))
 
-;; Read and parse lines from a port
-(define (read-manual-line-bits-parsed in-port)
-  (let ([next-line (read-line in-port)])
-    (if (eof-object? next-line)
-        empty-stream
-        (stream-cons 
-         (parse-manual-line next-line)
-         (read-manual-line-bits-parsed in-port)))))
+  ;; Read and parse lines from a port
+  (define (read-manual-line-bits-parsed in-port)
+    (let ([next-line (read-line in-port)])
+      (if (eof-object? next-line)
+          empty-stream
+          (stream-cons 
+           (parse-manual-line next-line)
+           (read-manual-line-bits-parsed in-port)))))
 
+  

@@ -91,6 +91,23 @@
   (paths-from "." '((0)) 0)
   (make-immutable-hash (list (cons "." '()))))
 
+(check-equal?
+  (paths-from "." '((0)) 1)
+  (make-immutable-hash
+   (list
+    (cons "." '())
+    (cons "#" '((0))))))
+
+(check-equal?
+  (paths-from ".." '((0) (1)) 1)
+  (make-immutable-hash
+   (list
+    (cons ".." '())
+    (cons "#." '((0)))
+    (cons ".#" '((1))))))
+    
+
+
 ; full input - line 1 already takes too long!!
 
 ; try first 10 lines 
