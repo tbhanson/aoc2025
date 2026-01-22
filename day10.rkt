@@ -11,10 +11,10 @@
   [manual-lexer (-> port? stream?)]
   [read-manual-line-bits-parsed (-> port? stream?)]
   [toggle-switches (-> string? (listof number?) string?)]
-  [fewest-presses (-> string? list? exact-nonnegative-integer?)]
+  ;[fewest-presses (-> string? list? exact-nonnegative-integer?)]
   [paths-from (-> string? list? exact-nonnegative-integer? hash?)]
   [paths-from-with-hash (-> list? exact-nonnegative-integer? hash? hash?)]
-  [find-shortest-path (-> string? list? exact-nonnegative-integer?)]
+  [find-length-of-shortest-path (-> string? list? exact-nonnegative-integer?)]
   [total-button-presses (-> port? exact-nonnegative-integer?)]
   ))
 
@@ -97,50 +97,66 @@
     
   
 
-(define (find-shortest-path state-to-reach button-choices)
-  ;;   (define (iter nodes-from-start nodes-from-finish current-depth)
-  ;;     (let ([possible-stepping-stones
-  ;;            (set-intersect
-  ;;             (hash-keys nodes-from-start)
-  ;;             (hash-keys nodes-from-finish))])
-  ;;       (if (not (set-empty? possible-stepping-stones))
-  ;;           ; we found a shortest path
-  ;;           (let ([node-on-path (set-first possible-stepping-stones)])
-  ;;             (+ (length (hash-ref nodes-from-start node-on-path))
-  ;;                (length (hash-ref nodes-from-finish node-on-path))))
-  ;;           ; keep looking
-  ;;           (let ([new-nodes-from-start
-                 
-  '())
+(define (find-length-of-shortest-path state-to-reach button-choices)
+  (define (shortest-path nodes-from-start nodes-from-finish nodes-that-link)
+    (for/fold ([shortest-so-far +inf.0])
+              ([next-node nodes-that-link])
+      (let ([length-this-way
+             (+ (length (hash-ref nodes-from-start next-node))
+                (length (hash-ref nodes-from-finish next-node)))])
+        (if (< length-this-way shortest-so-far)
+            length-this-way
+            shortest-so-far))))
+  
+    (define (iter nodes-from-start nodes-from-finish current-depth)
+      (let ([possible-stepping-stones
+             (set-intersect
+              (hash-keys nodes-from-start)
+              (hash-keys nodes-from-finish))])
+        (if (not (set-empty? possible-stepping-stones))
+            ; we found at least one path
+            (shortest-path nodes-from-start nodes-from-finish possible-stepping-stones)
+            ; keep looking
+            (let ([nodes-from-start
+                   (paths-from-with-hash button-choices (+ 1 current-depth) nodes-from-start)]
+                  [new-nodes-from-finish
+                   (paths-from-with-hash button-choices (+ 1 current-depth) nodes-from-finish)])
+              (iter nodes-from-start new-nodes-from-finish (+ 1 current-depth))))))
+  (iter
+   (let ([state-length (string-length state-to-reach)])
+     (let ([initial-state (make-string state-length #\.)])
+       (make-immutable-hash (list (cons initial-state '())))))
+   (make-immutable-hash (list (cons state-to-reach '())))
+   0))
 
-(define (fewest-presses state-to-reach button-choices)
-  (define (breadth-first state-to-here remaining-button-choices buttons-tried-so-far)
-    ;(printf "(breadth-first ~a ~a ~a)~n" state-to-here remaining-button-choices buttons-tried-so-far)
-    (cond [(string=? state-to-here state-to-reach)
-           (let ([result
-                  (length buttons-tried-so-far)])
-             ;(printf " result: ~a~n" result)
-             result)]
-
-          [(null? remaining-button-choices)
-           +inf.0] ; we have nothing left to try on this branch
-
-          [else
-           (for/fold ([result +inf.0])
-                     ([next-button remaining-button-choices])
-             (let ([suppose-next-button
-                    (breadth-first
-                     (toggle-switches state-to-here next-button)
-                     (remove next-button remaining-button-choices)
-                     (cons next-button buttons-tried-so-far))])
-               (if (< suppose-next-button result)
-                   suppose-next-button
-                   result)))]))
-
-  (let ([state-length (string-length state-to-reach)])
-    (let ([initial-state (make-string state-length #\.)])
-        
-      (breadth-first initial-state button-choices '()))))
+;; (define (fewest-presses state-to-reach button-choices)
+;;   (define (breadth-first state-to-here remaining-button-choices buttons-tried-so-far)
+;;     ;(printf "(breadth-first ~a ~a ~a)~n" state-to-here remaining-button-choices buttons-tried-so-far)
+;;     (cond [(string=? state-to-here state-to-reach)
+;;            (let ([result
+;;                   (length buttons-tried-so-far)])
+;;              ;(printf " result: ~a~n" result)
+;;              result)]
+;; 
+;;           [(null? remaining-button-choices)
+;;            +inf.0] ; we have nothing left to try on this branch
+;; 
+;;           [else
+;;            (for/fold ([result +inf.0])
+;;                      ([next-button remaining-button-choices])
+;;              (let ([suppose-next-button
+;;                     (breadth-first
+;;                      (toggle-switches state-to-here next-button)
+;;                      (remove next-button remaining-button-choices)
+;;                      (cons next-button buttons-tried-so-far))])
+;;                (if (< suppose-next-button result)
+;;                    suppose-next-button
+;;                    result)))]))
+;; 
+;;   (let ([state-length (string-length state-to-reach)])
+;;     (let ([initial-state (make-string state-length #\.)])
+;;         
+;;       (breadth-first initial-state button-choices '()))))
 
 
 (define (total-button-presses in-port)
@@ -151,12 +167,12 @@
                [line-number (in-naturals 1)])
       (let ([light-goal (car next-parsed-line)]
             [button-choices (cadr next-parsed-line)])
-        (printf "line ~a light-goal: ~a; button-choices: ~a~n" line-number light-goal button-choices)
-        (time
+        ;(printf "line ~a light-goal: ~a; button-choices: ~a~n" line-number light-goal button-choices)
+       ; (time
          (let ([sub-total
-                (fewest-presses light-goal button-choices)])
-           (printf "line ~a subtotal: ~a~n" line-number sub-total)
-           (+ result sub-total)))))))
+                (find-length-of-shortest-path light-goal button-choices)])
+           ;(printf "line ~a subtotal: ~a~n" line-number sub-total)
+           (+ result sub-total))))))
            
 
 ; claude's suggestion when I asked for help using a lexter and a parser
