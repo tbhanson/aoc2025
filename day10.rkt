@@ -11,7 +11,6 @@
   [manual-lexer (-> port? stream?)]
   [read-manual-line-bits-parsed (-> port? stream?)]
   [toggle-switches (-> string? (listof number?) string?)]
-  ;[fewest-presses (-> string? list? exact-nonnegative-integer?)]
   [paths-from (-> string? list? exact-nonnegative-integer? hash?)]
   [paths-from-with-hash (-> list? exact-nonnegative-integer? hash? hash?)]
   [find-length-of-shortest-path (-> string? list? exact-nonnegative-integer?)]
@@ -128,35 +127,6 @@
        (make-immutable-hash (list (cons initial-state '())))))
    (make-immutable-hash (list (cons state-to-reach '())))
    0))
-
-;; (define (fewest-presses state-to-reach button-choices)
-;;   (define (breadth-first state-to-here remaining-button-choices buttons-tried-so-far)
-;;     ;(printf "(breadth-first ~a ~a ~a)~n" state-to-here remaining-button-choices buttons-tried-so-far)
-;;     (cond [(string=? state-to-here state-to-reach)
-;;            (let ([result
-;;                   (length buttons-tried-so-far)])
-;;              ;(printf " result: ~a~n" result)
-;;              result)]
-;; 
-;;           [(null? remaining-button-choices)
-;;            +inf.0] ; we have nothing left to try on this branch
-;; 
-;;           [else
-;;            (for/fold ([result +inf.0])
-;;                      ([next-button remaining-button-choices])
-;;              (let ([suppose-next-button
-;;                     (breadth-first
-;;                      (toggle-switches state-to-here next-button)
-;;                      (remove next-button remaining-button-choices)
-;;                      (cons next-button buttons-tried-so-far))])
-;;                (if (< suppose-next-button result)
-;;                    suppose-next-button
-;;                    result)))]))
-;; 
-;;   (let ([state-length (string-length state-to-reach)])
-;;     (let ([initial-state (make-string state-length #\.)])
-;;         
-;;       (breadth-first initial-state button-choices '()))))
 
 
 (define (total-button-presses in-port)

@@ -44,18 +44,18 @@
  (toggle-switches "..#" '(0 2))
  "#..")
 
-;; ; fewest-presses
-;; (check-equal?
-;;  (fewest-presses "." '((0)))
-;;  0)
-;; 
-;; (check-equal?
-;;  (fewest-presses "#" '((0)))
-;;  1)
-;; 
-;; (check-equal?
-;;  (fewest-presses "##" '((0) (1)))
-;;  2)
+; find-length-of-shortest-path
+(check-equal?
+ (find-length-of-shortest-path "." '((0)))
+ 0)
+
+(check-equal?
+ (find-length-of-shortest-path "#" '((0)))
+ 1)
+
+(check-equal?
+ (find-length-of-shortest-path "##" '((0) (1)))
+ 2)
 
 ; check their 3 clues
 ;; "[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}~n"
