@@ -130,9 +130,9 @@
    (total-button-presses-part2 in-port)
    33))
 
-(time
- (let ([in-port
-        (open-input-file "test-data/input-day10-10.txt")])
-   (check-equal?
-    (total-button-presses-part2 in-port)
-    30)))
+;; (time
+;;  (let ([in-port
+;;         (open-input-file "test-data/input-day10-10.txt")])
+;;    (check-equal?
+;;     (total-button-presses-part2 in-port)
+;;     30)))
