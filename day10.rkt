@@ -15,6 +15,10 @@
   [paths-from-with-hash (-> list? exact-nonnegative-integer? hash? hash?)]
   [find-length-of-shortest-path (-> string? list? exact-nonnegative-integer?)]
   [total-button-presses (-> port? exact-nonnegative-integer?)]
+  ; part 2 (claude.ai)
+  [find-minimum-button-presses (-> list? (listof number?) exact-nonnegative-integer?)]
+  [total-button-presses-part2 (-> port? exact-nonnegative-integer?)]
+
   ))
 
 (define (assert pred anError)
@@ -233,3 +237,170 @@
          (parse-manual-line next-line)
          (read-manual-line-bits-parsed in-port)))))
 
+
+
+;; part 2: I asked claude.ai to solve it (it seemed very busy and I am low on patience today)
+
+;; claude suggested 2 versions of the first function but had reservations; the first failed with an error, the second didn't finish on small, sample input;
+;; claude then proposed a 3rd (also with reservations, I think).
+
+;; ;; Solve using integer linear programming approach
+;; ;; This is actually a system of linear equations where we want to minimize
+;; ;; the sum of button presses subject to constraints
+;; (define (find-minimum-button-presses button-choices targets)
+;;   (define num-buttons (length button-choices))
+;;   (define num-counters (length targets))
+;;   
+;;   ;; Create a matrix where entry [i][j] = 1 if button j affects counter i
+;;   (define (makes-matrix)
+;;     (for/list ([counter-idx (in-range num-counters)])
+;;       (for/list ([button (in-list button-choices)])
+;;         (if (member counter-idx button) 1 0))))
+;;   
+;;   ;; Brute force with optimization: try different combinations
+;;   ;; For small inputs, we can use a greedy approach with bounds
+;;   (define (solve-greedy)
+;;     (define max-target (apply max targets))
+;;     (define upper-bound (* num-buttons max-target)) ;; rough upper bound
+;;     
+;;     ;; Try to find solution using constraint propagation
+;;     (define (try-combination presses-per-button)
+;;       (define results
+;;         (for/list ([counter-idx (in-range num-counters)])
+;;           (for/sum ([button-idx (in-range num-buttons)]
+;;                     [button (in-list button-choices)])
+;;             (if (member counter-idx button)
+;;                 (list-ref presses-per-button button-idx)
+;;                 0))))
+;;       (and (equal? results targets)
+;;            (apply + presses-per-button)))
+;;     
+;;     ;; Use a smarter search: bounded depth-first search
+;;     (define (search-limited max-presses)
+;;       (define (search-rec button-idx current-presses current-counters)
+;;         (cond
+;;           [(= button-idx num-buttons)
+;;            (and (equal? current-counters targets)
+;;                 (apply + current-presses))]
+;;           [else
+;;            (for/first ([num-presses (in-range (+ max-presses 1))]
+;;                        #:when (let ([new-counters
+;;                                       (for/list ([c current-counters]
+;;                                                 [i (in-naturals)])
+;;                                         (+ c (if (member i (list-ref button-choices button-idx))
+;;                                                  num-presses
+;;                                                  0)))])
+;;                                 (and (for/and ([nc new-counters]
+;;                                               [t targets])
+;;                                        (<= nc t))
+;;                                      (search-rec (+ button-idx 1)
+;;                                                (append current-presses (list num-presses))
+;;                                                new-counters))))
+;;              #f)]))
+;;       
+;;       (search-rec 0 '() (make-list num-counters 0)))
+;;     
+;;     ;; Try progressively larger bounds
+;;     (for/first ([limit (in-range 0 (+ upper-bound 1))]
+;;                 #:when (search-limited limit))
+;;       limit))
+;;   
+;;   (solve-greedy))
+
+;; ;; More efficient: Use mathematical insight
+;; ;; This is solving: A * x = b where x >= 0, minimize sum(x)
+;; ;; A = button matrix, x = presses per button, b = targets
+;; (define (find-minimum-button-presses button-choices targets)
+;;   ;; For the contest, you'd typically use Gaussian elimination
+;;   ;; with backtracking or a proper ILP solver
+;;   ;; Here's a simpler greedy heuristic that works for many cases:
+;;   
+;;   (define num-buttons (length button-choices))
+;;   (define presses (make-vector num-buttons 0))
+;;   (define counters (make-vector (length targets) 0))
+;;   
+;;   ;; Greedy: repeatedly press the button that makes best progress
+;;   (let loop ()
+;;     (if (equal? (vector->list counters) targets)
+;;         (apply + (vector->list presses))
+;;         (let* ([best-button
+;;                  (argmax
+;;                   (lambda (btn-idx)
+;;                     (define btn (list-ref button-choices btn-idx))
+;;                     ;; Score: how much does this help vs overshoot?
+;;                     (for/sum ([c-idx btn])
+;;                       (max 0 (- (list-ref targets c-idx)
+;;                                (vector-ref counters c-idx)))))
+;;                   (range num-buttons))])
+;;           (when (> (list-ref (list-ref button-choices best-button) 0) 0) ;; prevent infinite loop
+;;             (vector-set! presses best-button (+ 1 (vector-ref presses best-button)))
+;;             (for ([c-idx (list-ref button-choices best-button)])
+;;               (vector-set! counters c-idx (+ 1 (vector-ref counters c-idx)))))
+;;           (loop)))))
+
+; claude's third attempt :)
+
+(define (find-minimum-button-presses button-choices targets)
+  (define num-buttons (length button-choices))
+  (define target-vector (list->vector targets))
+  
+  ;; BFS to find minimum total presses
+  ;; State: vector of current counter values
+  ;; We search for minimum presses to reach target-vector
+  (define (state->key state)
+    (vector->immutable-vector state))
+  
+  (define visited (make-hash))
+  (define queue (make-queue))
+  
+  (define start-state (make-vector (length targets) 0))
+  (hash-set! visited (state->key start-state) 0)
+  (enqueue! queue (cons start-state 0))
+  
+  (let loop ()
+    (if (queue-empty? queue)
+        +inf.0  ;; no solution found
+        (let* ([item (dequeue! queue)]
+               [current-state (car item)]
+               [presses-so-far (cdr item)])
+          (if (equal? current-state target-vector)
+              presses-so-far
+              (begin
+                ;; Try pressing each button
+                (for ([button-idx (in-range num-buttons)])
+                  (define button (list-ref button-choices button-idx))
+                  (define new-state (vector-copy current-state))
+                  
+                  ;; Apply button press
+                  (for ([counter-idx button])
+                    (vector-set! new-state counter-idx 
+                                (+ 1 (vector-ref new-state counter-idx))))
+                  
+                  ;; Only explore if we haven't exceeded targets
+                  (when (for/and ([val (in-vector new-state)]
+                                  [target targets])
+                          (<= val target))
+                    (define key (state->key new-state))
+                    (define new-presses (+ presses-so-far 1))
+                    
+                    (unless (and (hash-has-key? visited key)
+                                (<= (hash-ref visited key) new-presses))
+                      (hash-set! visited key new-presses)
+                      (enqueue! queue (cons new-state new-presses)))))
+                
+                (loop)))))))
+
+;; Part 2 version
+(define (total-button-presses-part2 in-port)
+  (let ([stream-of-parsed-lines
+         (read-manual-line-bits-parsed in-port)])
+    (for/fold ([result 0])
+              ([next-parsed-line stream-of-parsed-lines]
+               [line-number (in-naturals 1)])
+      (let ([_light-goal (car next-parsed-line)]  ;; ignore for part 2
+            [button-choices (cadr next-parsed-line)]
+            [joltage-targets (caddr next-parsed-line)])
+        (let ([sub-total
+                (find-minimum-button-presses button-choices joltage-targets)])
+          (printf "line ~a subtotal: ~a~n" line-number sub-total)
+          (+ result sub-total))))))

@@ -114,8 +114,6 @@
   8)
 
 
-; full input - line 1 already takes too long!!
-
 ; try first 10 lines 
 (time
  (let ([in-port
@@ -123,3 +121,11 @@
    (check-equal?
     (total-button-presses in-port)
     30)))
+
+; part 2: test claude.ai code
+(let ([in-port
+       (open-input-string sample-input)])
+
+  (check-equal?
+   (total-button-presses-part2 in-port)
+   33))
