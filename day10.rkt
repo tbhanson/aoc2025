@@ -16,12 +16,13 @@
   [find-length-of-shortest-path (-> string? list? exact-nonnegative-integer?)]
   [total-button-presses (-> port? exact-nonnegative-integer?)]
   ; part 2 (claude.ai)
-  [find-minimum-button-presses (-> (listof (listof exact-nonnegative-integer?))
+    [find-minimum-button-presses (-> (listof (listof exact-nonnegative-integer?))
                                     (listof exact-nonnegative-integer?)
                                     exact-nonnegative-integer?)]
   [total-button-presses-part2 (-> port? exact-nonnegative-integer?)]
   ))
 
+  
 (define (assert pred anError)
   (if (not pred) 
       (error anError)
@@ -241,155 +242,95 @@
 
 
 ;; part 2: I asked claude.ai to solve it (it seemed very busy and I am low on patience today)
+;; I've tried a series of its attempts! :)
 
-
-
+;; Add these to your existing day10.rkt file
 
 ;; Part 2: Find minimum button presses to reach target counter values
-;; Using linear algebra - this is solving A*x = b where we minimize sum(x)
+;; Using a more robust search with better heuristics
 
 
 (define (find-minimum-button-presses button-choices targets)
-  ;; This is a system of linear equations: A * x = b
-  ;; where A[i][j] = 1 if button j affects counter i, else 0
-  ;; x = number of presses per button (what we're solving for)
-  ;; b = target values
-  ;; We want to minimize sum(x) subject to A*x = b and x >= 0
+  ;; Use A* search with Manhattan distance heuristic
+  ;; This is much more efficient than plain BFS
   
-  (define num-buttons (length button-choices))
   (define num-counters (length targets))
   
-  ;; Build the constraint matrix A
-  ;; A[counter][button] = 1 if that button affects that counter
-  (define (build-matrix)
-    (for/vector ([counter-idx (in-range num-counters)])
-      (for/vector ([button (in-list button-choices)])
-        (if (member counter-idx button) 1 0))))
+  (define (state->key state)
+    (list->vector state))
   
-  ;; Greedy approach: iteratively press buttons that make the most progress
-  ;; This works well when there's a unique or near-unique solution
-  (define (solve-greedy)
-    (define presses (make-vector num-buttons 0))
-    (define current (make-vector num-counters 0))
-    
-    ;; Keep pressing buttons until we reach the target
-    (let loop ([iterations 0])
-      (cond
-        [(equal? (vector->list current) targets)
-         (apply + (vector->list presses))]
-        
-        [(> iterations 10000)  ;; Safety check
-         (error "Too many iterations - no solution found")]
-        
-        [else
-         ;; Find the button that makes the best progress
-         ;; Score = how much it helps with needed counters - penalty for overshooting
-         (define best-button
-           (for/fold ([best-idx 0]
-                      [best-score -inf.0])
-                     ([button-idx (in-range num-buttons)])
-             (define button (list-ref button-choices button-idx))
-             (define score
-               (for/sum ([counter-idx button])
-                 (define current-val (vector-ref current counter-idx))
-                 (define target-val (list-ref targets counter-idx))
-                 (cond
-                   [(> current-val target-val) -1000]  ;; Big penalty for overshoot
-                   [else (- target-val current-val)])))  ;; Reward for progress
-             
-             (if (> score best-score)
-                 (values button-idx score)
-                 (values best-idx best-score))))
-         
-         ;; Press the best button
-         (vector-set! presses best-button (+ 1 (vector-ref presses best-button)))
-         (for ([counter-idx (list-ref button-choices best-button)])
-           (vector-set! current counter-idx (+ 1 (vector-ref current counter-idx))))
-         
-         (loop (+ iterations 1))])))
+  (define (press-button counters button)
+    (for/list ([counter-val counters]
+               [counter-idx (in-naturals)])
+      (if (member counter-idx button)
+          (+ counter-val 1)
+          counter-val)))
   
-  ;; Try a smarter approach using the matrix structure
-  ;; For each counter, we need to figure out which buttons to press
-  (define (solve-smart)
-    (define matrix (build-matrix))
-    (define presses (make-vector num-buttons 0))
-    
-    ;; Process each counter, trying to satisfy it
-    ;; This is a simplified Gaussian elimination approach
-    (for ([counter-idx (in-range num-counters)])
-      (define target (list-ref targets counter-idx))
-      (define row (vector-ref matrix counter-idx))
+  (define (exceeds-target? counters)
+    (for/or ([val counters]
+             [target targets])
+      (> val target)))
+  
+  ;; Heuristic: minimum additional presses needed (optimistic estimate)
+  (define (heuristic state)
+    (define remaining
+      (for/list ([val state]
+                 [target targets])
+        (max 0 (- target val))))
+    (apply max remaining))  ;; At minimum, need max of remaining
+  
+  ;; Priority queue using hash with priorities
+  (define pq (make-hash))
+  (define (pq-insert! state priority)
+    (hash-set! pq state (min priority (hash-ref pq state +inf.0))))
+  
+  (define (pq-pop-min!)
+    (define min-state
+      (for/fold ([best-state #f]
+                 [best-priority +inf.0]
+                 #:result best-state)
+                ([(state priority) (in-hash pq)])
+        (if (< priority best-priority)
+            (values state priority)
+            (values best-state best-priority))))
+    (hash-remove! pq min-state)
+    min-state)
+  
+  ;; A* search
+  (define dist (make-hash))
+  (define initial-state (make-list num-counters 0))
+  (define initial-key (state->key initial-state))
+  
+  (hash-set! dist initial-key 0)
+  (pq-insert! initial-state (heuristic initial-state))
+  
+  (let loop ()
+    (cond
+      [(hash-empty? pq) +inf.0]
       
-      ;; Find which buttons affect this counter
-      (define affecting-buttons
-        (for/list ([button-idx (in-range num-buttons)]
-                   #:when (= 1 (vector-ref row button-idx)))
-          button-idx))
-      
-      (unless (null? affecting-buttons)
-        ;; Simple heuristic: use the button that affects fewest counters
-        (define best-button
-          (argmin
-           (lambda (btn-idx)
-             (length (list-ref button-choices btn-idx)))
-           affecting-buttons))
-        
-        ;; Calculate how many times we need to press this button
-        ;; (This is approximate - we may need to adjust)
-        (define current-value
-          (for/sum ([btn-idx (in-range num-buttons)])
-            (if (member counter-idx (list-ref button-choices btn-idx))
-                (vector-ref presses btn-idx)
-                0)))
-        
-        (define needed (- target current-value))
-        (when (> needed 0)
-          (vector-set! presses best-button 
-                      (+ (vector-ref presses best-button) needed)))))
-    
-    ;; Now refine using greedy adjustments
-    (define current (make-vector num-counters 0))
-    (for ([btn-idx (in-range num-buttons)])
-      (for ([counter-idx (list-ref button-choices btn-idx)])
-        (vector-set! current counter-idx
-                    (+ (vector-ref current counter-idx)
-                       (vector-ref presses btn-idx)))))
-    
-    ;; Adjust if needed
-    (let adjust-loop ([max-adjustments 1000])
-      (if (or (= max-adjustments 0) (equal? (vector->list current) targets))
-          (apply + (vector->list presses))
-          
-          ;; Find what needs adjustment
-          (let* ([diffs (for/list ([c (in-vector current)]
-                                   [t targets])
-                          (- t c))]
-                 [max-diff-idx (argmax abs diffs)]
-                 [diff (list-ref diffs max-diff-idx)])
+      [else
+       (define current-state (pq-pop-min!))
+       (define current-key (state->key current-state))
+       (define current-dist (hash-ref dist current-key +inf.0))
+       
+       (cond
+         [(equal? current-state targets) current-dist]
+         
+         [else
+          ;; Try each button
+          (for ([button button-choices])
+            (define new-state (press-button current-state button))
             
-            (if (= diff 0)
-                (apply + (vector->list presses))
-                
-                ;; Find a button that affects this counter
-                (let ([btn (for/first ([b (in-range num-buttons)]
-                                       #:when (member max-diff-idx 
-                                                     (list-ref button-choices b)))
-                             b)])
-                  (if btn
-                      (begin
-                        (if (> diff 0)
-                            (begin
-                              (vector-set! presses btn (+ 1 (vector-ref presses btn)))
-                              (for ([c (list-ref button-choices btn)])
-                                (vector-set! current c (+ 1 (vector-ref current c)))))
-                            (begin
-                              (vector-set! presses btn (- (vector-ref presses btn) 1))
-                              (for ([c (list-ref button-choices btn)])
-                                (vector-set! current c (- (vector-ref current c) 1)))))
-                        (adjust-loop (- max-adjustments 1)))
-                      (error "Cannot adjust - no button found"))))))))
-  
-  (solve-smart))
+            (unless (exceeds-target? new-state)
+              (define new-key (state->key new-state))
+              (define new-dist (+ current-dist 1))
+              (define old-dist (hash-ref dist new-key +inf.0))
+              
+              (when (< new-dist old-dist)
+                (hash-set! dist new-key new-dist)
+                (pq-insert! new-state (+ new-dist (heuristic new-state))))))
+          
+          (loop)])])))
 
 (define (total-button-presses-part2 in-port)
   (let ([stream-of-parsed-lines
