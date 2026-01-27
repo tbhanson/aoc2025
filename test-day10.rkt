@@ -123,12 +123,12 @@
     30)))
 
 ; part 2
-;; (let ([in-port
-;;        (open-input-string sample-input)])
-;; 
-;;   (check-equal?
-;;    (total-button-presses-part2 in-port)
-;;    33))
+(let ([in-port
+       (open-input-string sample-input)])
+
+  (check-equal?
+   (find-total-part2-button-presses in-port)
+   33))
 
 ;; (time
 ;;  (let ([in-port
