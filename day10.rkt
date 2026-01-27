@@ -11,15 +11,15 @@
   [manual-lexer (-> port? stream?)]
   [read-manual-line-bits-parsed (-> port? stream?)]
   [toggle-switches (-> string? (listof number?) string?)]
-  [paths-from (-> string? list? exact-nonnegative-integer? hash?)]
-  [paths-from-with-hash (-> list? exact-nonnegative-integer? hash? hash?)]
-  [find-length-of-shortest-path (-> string? list? exact-nonnegative-integer?)]
-  [total-button-presses (-> port? exact-nonnegative-integer?)]
-  ; part 2 (claude.ai)
-  [find-minimum-button-presses (-> (listof (listof exact-nonnegative-integer?))
-                                   (listof exact-nonnegative-integer?)
-                                   exact-nonnegative-integer?)]
-  [total-button-presses-part2 (-> port? exact-nonnegative-integer?)]
+  [toggle-paths-from (-> string? list? exact-nonnegative-integer? hash?)]
+  [toggle-paths-from-with-hash (-> list? exact-nonnegative-integer? hash? hash?)]
+  [find-length-of-shortest-toggle-path (-> string? list? exact-nonnegative-integer?)]
+  [total-part1-button-presses (-> port? exact-nonnegative-integer?)]
+  ; part 2 (several failed attempts by claude.ai)
+;;   [find-minimum-button-presses (-> (listof (listof exact-nonnegative-integer?))
+;;                                    (listof exact-nonnegative-integer?)
+;;                                    exact-nonnegative-integer?)]
+;;   [total-button-presses-part2 (-> port? exact-nonnegative-integer?)]
   ))
 
   
@@ -68,11 +68,11 @@
     ))
 
 ; build a hash of states we've been able to reach from an initial state with at most depth steps
-(define (paths-from starting-state button-choices max-depth)
-  (paths-from-with-hash button-choices max-depth (make-immutable-hash (list (cons starting-state '())))))
+(define (toggle-paths-from starting-state button-choices max-depth)
+  (toggle-paths-from-with-hash button-choices max-depth (make-immutable-hash (list (cons starting-state '())))))
                    
 ; build a version that can start after already exploring some (hash-til-now)
-(define (paths-from-with-hash button-choices max-depth hash-til-now)
+(define (toggle-paths-from-with-hash button-choices max-depth hash-til-now)
   (let ([depth-so-far
          (for/fold ([result 0])
                    ([next-node-path (hash-values hash-til-now)])
@@ -102,7 +102,7 @@
     
   
 
-(define (find-length-of-shortest-path state-to-reach button-choices)
+(define (find-length-of-shortest-toggle-path state-to-reach button-choices)
   (define (shortest-path nodes-from-start nodes-from-finish nodes-that-link)
     (for/fold ([shortest-so-far +inf.0])
               ([next-node nodes-that-link])
@@ -123,9 +123,9 @@
           (shortest-path nodes-from-start nodes-from-finish possible-stepping-stones)
           ; keep looking
           (let ([nodes-from-start
-                 (paths-from-with-hash button-choices (+ 1 current-depth) nodes-from-start)]
+                 (toggle-paths-from-with-hash button-choices (+ 1 current-depth) nodes-from-start)]
                 [new-nodes-from-finish
-                 (paths-from-with-hash button-choices (+ 1 current-depth) nodes-from-finish)])
+                 (toggle-paths-from-with-hash button-choices (+ 1 current-depth) nodes-from-finish)])
             (iter nodes-from-start new-nodes-from-finish (+ 1 current-depth))))))
   (iter
    (let ([state-length (string-length state-to-reach)])
@@ -135,7 +135,7 @@
    0))
 
 
-(define (total-button-presses in-port)
+(define (total-part1-button-presses in-port)
   (let ([stream-of-parsed-lines
          (read-manual-line-bits-parsed in-port)])
     (for/fold ([result 0])
@@ -146,7 +146,7 @@
         ;(printf "line ~a light-goal: ~a; button-choices: ~a~n" line-number light-goal button-choices)
         ; (time
         (let ([sub-total
-               (find-length-of-shortest-path light-goal button-choices)])
+               (find-length-of-shortest-toggle-path light-goal button-choices)])
           ;(printf "line ~a subtotal: ~a~n" line-number sub-total)
           (+ result sub-total))))))
            
@@ -241,118 +241,5 @@
 
 
 
-;; part 2: I asked claude.ai to solve it (it seemed very busy and I am low on patience today)
-;; I've tried a series of its attempts! :)
-
-
-
-
-
-
-(define (find-minimum-button-presses button-choices targets)
-  ;; Greedy approach: Process buttons in order, setting presses to satisfy constraints
-  ;; This works when the system has a unique or near-unique solution
-  
-  (define num-buttons (length button-choices))
-  (define num-counters (length targets))
-  
-  ;; Create a mutable vector to track button presses
-  (define presses (make-vector num-buttons 0))
-  
-  ;; Helper: calculate current counter values given button presses
-  (define (calculate-counters)
-    (define counters (make-vector num-counters 0))
-    (for ([button-idx (in-range num-buttons)])
-      (define button (list-ref button-choices button-idx))
-      (define count (vector-ref presses button-idx))
-      (for ([counter-idx button])
-        (vector-set! counters counter-idx 
-                    (+ (vector-ref counters counter-idx) count))))
-    counters)
-  
-  ;; Greedy algorithm: process each counter, find a button that uniquely affects it if possible
-  ;; Sort counters by how many buttons affect them (fewer is better)
-  (define counter-button-map
-    (for/list ([counter-idx (in-range num-counters)])
-      (cons counter-idx
-            (for/list ([button-idx (in-range num-buttons)]
-                       #:when (member counter-idx (list-ref button-choices button-idx)))
-              button-idx))))
-  
-  ;; Try to solve using Gaussian elimination style approach
-  ;; For each counter, if there's a button that affects it uniquely or predominantly,
-  ;; use that button to satisfy the constraint
-  
-  (define (solve-iteratively max-iterations)
-    (let loop ([iter 0])
-      (define current (calculate-counters))
-      (define errors
-        (for/list ([c (in-vector current)]
-                   [t targets])
-          (- t c)))
-      
-      (cond
-        [(andmap zero? errors) 
-         (apply + (vector->list presses))]
-        
-        [(>= iter max-iterations)
-         (error (format "Failed to converge after ~a iterations. Current: ~a, Target: ~a" 
-                       max-iterations (vector->list current) targets))]
-        
-        [else
-         ;; Find counter with largest error
-         (define-values (max-error-idx error-val)
-           (for/fold ([best-idx 0]
-                      [best-error 0])
-                     ([error errors]
-                      [idx (in-naturals)])
-             (if (> (abs error) (abs best-error))
-                 (values idx error)
-                 (values best-idx best-error))))
-         
-         ;; Find a button that affects this counter
-         ;; Prefer buttons that affect fewer total counters (more specific)
-         (define affecting-buttons
-           (for/list ([btn-idx (in-range num-buttons)]
-                      #:when (member max-error-idx (list-ref button-choices btn-idx)))
-             btn-idx))
-         
-         (if (null? affecting-buttons)
-             (error (format "No button affects counter ~a" max-error-idx))
-             (let ([best-button
-                    (argmin
-                     (lambda (btn-idx)
-                       (length (list-ref button-choices btn-idx)))
-                     affecting-buttons)])
-               
-               ;; Adjust this button's presses
-               (if (> error-val 0)
-                   ;; Need more - increase presses
-                   (vector-set! presses best-button 
-                               (+ (vector-ref presses best-button) 1))
-                   ;; Need less - decrease if possible
-                   (when (> (vector-ref presses best-button) 0)
-                     (vector-set! presses best-button 
-                                 (- (vector-ref presses best-button) 1))))
-               
-               (loop (+ iter 1))))])))
-  
-  (solve-iteratively 100000))
-
-(define (total-button-presses-part2 in-port)
-  (let ([stream-of-parsed-lines
-         (read-manual-line-bits-parsed in-port)])
-    (for/fold ([result 0])
-              ([next-parsed-line stream-of-parsed-lines]
-               [line-number (in-naturals 1)])
-      (let ([_light-goal (car next-parsed-line)]
-            [button-choices (cadr next-parsed-line)]
-            [joltage-targets (caddr next-parsed-line)])
-        (printf "Processing line ~a with targets ~a...~n" line-number joltage-targets)
-        (let ([sub-total
-               (with-handlers ([exn:fail? (lambda (e) 
-                                           (printf "Error on line ~a: ~a~n" line-number (exn-message e))
-                                           0)])
-                 (time (find-minimum-button-presses button-choices joltage-targets)))])
-          (printf "line ~a subtotal: ~a~n" line-number sub-total)
-          (+ result sub-total))))))
+;; part 2; I played around asking claude.ai to solve part 2; it was very willing to try, but failed in various ways.
+;; thinking about it, it feels as though I can adapt what I did in part 1 (working from start and back from finish until I find a meeting point) -- different, but analogous

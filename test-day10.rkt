@@ -44,73 +44,73 @@
  (toggle-switches "..#" '(0 2))
  "#..")
 
-; find-length-of-shortest-path
+; find-length-of-shortest-toggle-path
 (check-equal?
- (find-length-of-shortest-path "." '((0)))
+ (find-length-of-shortest-toggle-path "." '((0)))
  0)
 
 (check-equal?
- (find-length-of-shortest-path "#" '((0)))
+ (find-length-of-shortest-toggle-path "#" '((0)))
  1)
 
 (check-equal?
- (find-length-of-shortest-path "##" '((0) (1)))
+ (find-length-of-shortest-toggle-path "##" '((0) (1)))
  2)
 
 ; check their 3 clues
 ;; "[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}~n"
 (check-equal?
- (find-length-of-shortest-path ".##." '((3) (1 3) (2) (2 3) (0 2) (0 1)))
+ (find-length-of-shortest-toggle-path ".##." '((3) (1 3) (2) (2 3) (0 2) (0 1)))
  2)
 
 ;; [...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}
 (check-equal?
- (find-length-of-shortest-path "...#." '((0 2 3 4) (2 3) (0 4) (0 1 2) (1 2 3 4)))
+ (find-length-of-shortest-toggle-path "...#." '((0 2 3 4) (2 3) (0 4) (0 1 2) (1 2 3 4)))
  3)
 
 ;; [.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}
 (check-equal?
- (find-length-of-shortest-path ".###.#" '((0 1 2 3 4) (0 3 4) (0 1 2 4 5) (1 2)))
+ (find-length-of-shortest-toggle-path ".###.#" '((0 1 2 3 4) (0 3 4) (0 1 2 4 5) (1 2)))
  2)
 
 ;; line 4 of full input; our method doesn't seem to work here!
 ;; [.###.] (1,2,4) (0,2,4) (0,1,3,4) (2,4) {23,23,40,3,43}
 (check-equal?
- (find-length-of-shortest-path ".###." '((1 2 4) (0 2 4) (0 1 3 4) (2 4)))
+ (find-length-of-shortest-toggle-path ".###." '((1 2 4) (0 2 4) (0 1 3 4) (2 4)))
  2)
 
-; total-button-presses
+; total-part1-button-presses
 (let ([in-port
        (open-input-string sample-input)])
   (check-equal?
-   (total-button-presses in-port)
+   (total-part1-button-presses in-port)
    7))
 
 ; get more systematic and sophisticated
 (check-equal?
-  (paths-from "." '((0)) 0)
+  (toggle-paths-from "." '((0)) 0)
   (make-immutable-hash (list (cons "." '()))))
 
 (check-equal?
-  (paths-from "." '((0)) 1)
+  (toggle-paths-from "." '((0)) 1)
   (make-immutable-hash
    (list
     (cons "." '())
     (cons "#" '((0))))))
 
 (check-equal?
-  (paths-from ".." '((0) (1)) 1)
+  (toggle-paths-from ".." '((0) (1)) 1)
   (make-immutable-hash
    (list
     (cons ".." '())
     (cons "#." '((0)))
     (cons ".#" '((1))))))
 
-;  (find-length-of-shortest-path state-to-reach button-choices)
+;  (find-length-of-shortest-toggle-path state-to-reach button-choices)
 ; line 1 full
 ; [.#...#...#] (3,5,7,8) (0,3,4) (0,1,2,3,4,7,9) (0,1,3,4,6,7,9) (1,4,5,6,8) (0,1,6,9) (0,2,3,4,5,7,8,9) (1,2,5,6,7,9) (0,2,3,5,6,7,8,9) (0,2,3,4,5,7,8)
 (check-equal?
-  (find-length-of-shortest-path ".#...#...#" '((3 5 7 8) (0 3 4) (0 1 2 3 4 7 9) (0 1 3 4 6 7 9) (1 4 5 6 8) (0 1 6 9) (0 2 3 4 5 7 8 9) (1 2 5 6 7 9) (0 2 3 5 6 7 8 9) (0 2 3 4 5 7 8)))
+  (find-length-of-shortest-toggle-path ".#...#...#" '((3 5 7 8) (0 3 4) (0 1 2 3 4 7 9) (0 1 3 4 6 7 9) (1 4 5 6 8) (0 1 6 9) (0 2 3 4 5 7 8 9) (1 2 5 6 7 9) (0 2 3 5 6 7 8 9) (0 2 3 4 5 7 8)))
   8)
 
 
@@ -119,16 +119,16 @@
  (let ([in-port
         (open-input-file "test-data/input-day10-10.txt")])
    (check-equal?
-    (total-button-presses in-port)
+    (total-part1-button-presses in-port)
     30)))
 
-; part 2: test claude.ai code
-(let ([in-port
-       (open-input-string sample-input)])
-
-  (check-equal?
-   (total-button-presses-part2 in-port)
-   33))
+; part 2
+;; (let ([in-port
+;;        (open-input-string sample-input)])
+;; 
+;;   (check-equal?
+;;    (total-button-presses-part2 in-port)
+;;    33))
 
 ;; (time
 ;;  (let ([in-port
