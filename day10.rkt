@@ -16,7 +16,12 @@
   [find-length-of-shortest-toggle-path (-> string? list? exact-nonnegative-integer?)]
   [total-part1-button-presses (-> port? exact-nonnegative-integer?)]
   ; part 2 (several failed attempts by claude.ai)
-  [part2-paths-from-with-hash (-> (-> number? number? number?) list? exact-nonnegative-integer? hash? hash?)]
+  [distance-to-goal (-> (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?) exact-nonnegative-integer?)]
+  [not-closer-to-goal? (-> (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?) boolean?)]
+  [part2-paths-from-with-hash (->
+                               (listof exact-nonnegative-integer?)
+                               (-> exact-nonnegative-integer? exact-nonnegative-integer? exact-nonnegative-integer?)
+                               (listof exact-nonnegative-integer?) exact-nonnegative-integer? hash? hash?)]
   [find-length-of-shortest-part2-path (-> string? list? exact-nonnegative-integer?)]
   [find-total-part2-button-presses (-> port? exact-nonnegative-integer?)]
 
@@ -243,17 +248,34 @@
 
 ;; part 2; I played around asking claude.ai to solve part 2; it was very willing to try, but failed in various ways.
 ;; thinking about it, it feels as though I can adapt what I did in part 1 (working from start and back from finish until I find a meeting point) -- different, but analogous
+;; the first naive approach is too slow however (solves the small sample, but not even line 1 of the real input); too many options and steps, me thinks;
+;; what about greedy? what about ruling out steps that take us away from goal (at least until we're close?) ?
 
-(define (part2-paths-from-with-hash add-or-subtract button-choices max-depth hash-til-now)
+(define (distance-to-goal from to)
+  (for/fold ([sum 0])
+            ([from_i from]
+             [to_i to])
+    (+ sum
+       (abs (- to_i from_i)))))
+
+(define (not-closer-to-goal? at-least-state inquire-state goal-state)
+  (let ([at-least-distance (distance-to-goal at-least-state goal-state)]
+        [compare-distance  (distance-to-goal inquire-state goal-state)])
+    (>= compare-distance at-least-distance)))
+        
+                    
+                    
+  
+(define (part2-paths-from-with-hash goal-state add-or-subtract button-choices max-depth hash-til-now)
   (define (apply-op op state move)
     (let ([state-length (length state)])
       (let ([new-state
              (for/list
                  ([state_i state]
                   [i (in-range state-length)])
-                 (if (member i move)
-                     (op state_i 1)
-                     state_i))])
+               (if (member i move)
+                   (op state_i 1)
+                   state_i))])
         ;(printf "(apply-op ~a ~a ~a) --> ~a~n" op state move new-state)
         new-state)))
     
@@ -268,54 +290,77 @@
       ; expand from frontier, which means those parts of result at distance depth from the start
       (for*/fold ([new-result result])
                  ([next-move button-choices]
-                  [next-state (hash-keys result)]
-                  #:when (= depth (length (hash-ref result next-state))))
-        (let ([next-candidate-state (apply-op add-or-subtract next-state next-move)])
+                  [examine-state (hash-keys result)]
+                  #:when (= depth (length (hash-ref result examine-state))))
+        (let ([next-candidate-state (apply-op add-or-subtract examine-state next-move)])
           ; have we seen this already?
           (cond [(hash-has-key? result next-candidate-state)
                  (let ([previous-path-length (length (hash-ref result next-candidate-state))]
-                       [this-path-length (+ 1 (length (hash-ref result next-state)))])
+                       [this-path-length (+ 1 (length (hash-ref result examine-state)))])
                    ; is this route shorter? (if yes, record shorter path, else leave alone)
                    (if (< this-path-length previous-path-length)
-                       (hash-set new-result next-candidate-state (cons next-move (hash-ref result next-state)))
+                       (hash-set new-result next-candidate-state (cons next-move (hash-ref result examine-state)))
                        new-result))]
 
+                [(not-closer-to-goal? examine-state next-candidate-state goal-state)
+                 (begin
+                   ;(printf " skipping state ~a -- not closer to ~a than ~a is already~n" next-candidate-state goal-state examine-state)
+                   new-result)
+                 ]
+                
                 [else
-                 (hash-set new-result next-candidate-state (cons next-move (hash-ref result next-state)))]))))))
+                 (hash-set new-result next-candidate-state (cons next-move (hash-ref result examine-state)))]))))))
 
 (define (find-length-of-shortest-part2-path state-to-reach button-choices)
-  (define (shortest-path nodes-from-start nodes-from-finish nodes-that-link)
-    (for/fold ([shortest-so-far +inf.0])
-              ([next-node nodes-that-link])
-      (let ([length-this-way
-             (+ (length (hash-ref nodes-from-start next-node))
-                (length (hash-ref nodes-from-finish next-node)))])
-        (if (< length-this-way shortest-so-far)
-            length-this-way
-            shortest-so-far))))
+  (let ([state-length (length state-to-reach)])
+    (let ([initial-state (make-list state-length 0)])
+      (let ([crude-distance-estimate
+             (distance-to-goal initial-state state-to-reach)])
+      
+        (define (shortest-path nodes-from-start nodes-from-finish nodes-that-link)
+          (for/fold ([shortest-so-far +inf.0])
+                    ([next-node nodes-that-link])
+            (let ([length-this-way
+                   (+ (length (hash-ref nodes-from-start next-node))
+                      (length (hash-ref nodes-from-finish next-node)))])
+              (if (< length-this-way shortest-so-far)
+                  length-this-way
+                  shortest-so-far))))
   
-  (define (iter nodes-from-start nodes-from-finish current-depth)
-    (let ([possible-stepping-stones
-           (set-intersect
-            (hash-keys nodes-from-start)
-            (hash-keys nodes-from-finish))])
-      (if (not (set-empty? possible-stepping-stones))
-          ; we found at least one path
-          (shortest-path nodes-from-start nodes-from-finish possible-stepping-stones)
-          ; keep looking
-          (let ([nodes-from-start
-                 (part2-paths-from-with-hash + button-choices (+ 1 current-depth) nodes-from-start)]
-                [new-nodes-from-finish
-                 (part2-paths-from-with-hash - button-choices (+ 1 current-depth) nodes-from-finish)])
-            (iter nodes-from-start new-nodes-from-finish (+ 1 current-depth))))))
+        (define (iter nodes-from-start nodes-from-finish current-depth)
+          (cond
+            [(> current-depth crude-distance-estimate)
+             (error (format "  are we sure we should ever need more steps than crude-distance-estimate (~a)? (our current-depth is ~a)" crude-distance-estimate current-depth))]
 
-  (printf "(find-length-of-shortest-part2-path ~a ~a)~n" state-to-reach button-choices)
-  (iter
-   (let ([state-length (length state-to-reach)])
-     (let ([initial-state (make-list state-length 0)])
-       (make-immutable-hash (list (cons initial-state '())))))
-   (make-immutable-hash (list (cons state-to-reach '())))
-   0))
+            [else
+             (begin
+               (let ([possible-stepping-stones
+                      (set-intersect
+                       (hash-keys nodes-from-start)
+                       (hash-keys nodes-from-finish))])
+                 (if (not (set-empty? possible-stepping-stones))
+                     ; we found at least one path
+                     (shortest-path nodes-from-start nodes-from-finish possible-stepping-stones)
+                     ; keep looking
+                     (let ([nodes-from-start
+                            (part2-paths-from-with-hash state-to-reach + button-choices (+ 1 current-depth) nodes-from-start)]
+                           [new-nodes-from-finish
+                            (part2-paths-from-with-hash state-to-reach - button-choices (+ 1 current-depth) nodes-from-finish)])
+                       (iter nodes-from-start new-nodes-from-finish (+ 1 current-depth))))))]))
+
+
+        (begin
+          (printf "--- (find-length-of-shortest-part2-path ~a ~a)~n" state-to-reach button-choices)
+          (printf "--- NB: crude-distance-estimate: ~a~n" crude-distance-estimate)
+        
+          (let ([result
+                 (iter
+                  (make-immutable-hash (list (cons initial-state '())))
+                  (make-immutable-hash (list (cons state-to-reach '())))
+                  0)])
+            (printf "--- ---> ~a~n" result)
+            result))))))
+    
 
 (define (find-total-part2-button-presses in-port)
   (let ([stream-of-parsed-lines
@@ -331,4 +376,3 @@
                (find-length-of-shortest-part2-path joltage-goal button-choices)])
           ;(printf "line ~a subtotal: ~a~n" line-number sub-total)
           (+ result sub-total))))))
-           

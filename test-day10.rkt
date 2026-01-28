@@ -123,16 +123,37 @@
     30)))
 
 ; part 2
+
+(check-equal?
+ (distance-to-goal (list 0) (list 0))
+ 0)
+
+(check-equal?
+ (distance-to-goal (list 0) (list 1))
+ 1)
+
+(check-equal?
+ (distance-to-goal (list 0 0) (list 1 2))
+ 3)
+
+(check-false
+ (not-closer-to-goal? (list 1) (list 2) (list 2)))
+
+(check-true
+ (not-closer-to-goal? (list 1) (list 1) (list 2)))
+
+
+
 (let ([in-port
        (open-input-string sample-input)])
 
   (check-equal?
    (find-total-part2-button-presses in-port)
    33))
-
+;; 
 ;; (time
 ;;  (let ([in-port
 ;;         (open-input-file "test-data/input-day10-10.txt")])
 ;;    (check-equal?
-;;     (total-button-presses-part2 in-port)
+;;     (find-total-part2-button-presses in-port)
 ;;     30)))
