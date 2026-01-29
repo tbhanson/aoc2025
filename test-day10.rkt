@@ -88,30 +88,30 @@
 
 ; get more systematic and sophisticated
 (check-equal?
-  (toggle-paths-from "." '((0)) 0)
-  (make-immutable-hash (list (cons "." '()))))
+ (toggle-paths-from "." '((0)) 0)
+ (make-immutable-hash (list (cons "." '()))))
 
 (check-equal?
-  (toggle-paths-from "." '((0)) 1)
-  (make-immutable-hash
-   (list
-    (cons "." '())
-    (cons "#" '((0))))))
+ (toggle-paths-from "." '((0)) 1)
+ (make-immutable-hash
+  (list
+   (cons "." '())
+   (cons "#" '((0))))))
 
 (check-equal?
-  (toggle-paths-from ".." '((0) (1)) 1)
-  (make-immutable-hash
-   (list
-    (cons ".." '())
-    (cons "#." '((0)))
-    (cons ".#" '((1))))))
+ (toggle-paths-from ".." '((0) (1)) 1)
+ (make-immutable-hash
+  (list
+   (cons ".." '())
+   (cons "#." '((0)))
+   (cons ".#" '((1))))))
 
 ;  (find-length-of-shortest-toggle-path state-to-reach button-choices)
 ; line 1 full
 ; [.#...#...#] (3,5,7,8) (0,3,4) (0,1,2,3,4,7,9) (0,1,3,4,6,7,9) (1,4,5,6,8) (0,1,6,9) (0,2,3,4,5,7,8,9) (1,2,5,6,7,9) (0,2,3,5,6,7,8,9) (0,2,3,4,5,7,8)
 (check-equal?
-  (find-length-of-shortest-toggle-path ".#...#...#" '((3 5 7 8) (0 3 4) (0 1 2 3 4 7 9) (0 1 3 4 6 7 9) (1 4 5 6 8) (0 1 6 9) (0 2 3 4 5 7 8 9) (1 2 5 6 7 9) (0 2 3 5 6 7 8 9) (0 2 3 4 5 7 8)))
-  8)
+ (find-length-of-shortest-toggle-path ".#...#...#" '((3 5 7 8) (0 3 4) (0 1 2 3 4 7 9) (0 1 3 4 6 7 9) (1 4 5 6 8) (0 1 6 9) (0 2 3 4 5 7 8 9) (1 2 5 6 7 9) (0 2 3 5 6 7 8 9) (0 2 3 4 5 7 8)))
+ 8)
 
 
 ; try first 10 lines 
@@ -150,10 +150,30 @@
   (check-equal?
    (find-total-part2-button-presses in-port)
    33))
-;; 
+
 ;; (time
 ;;  (let ([in-port
 ;;         (open-input-file "test-data/input-day10-10.txt")])
 ;;    (check-equal?
 ;;     (find-total-part2-button-presses in-port)
 ;;     30)))
+
+(let ([in-port
+       (open-input-string sample-input)])
+
+  (check-equal?
+   (stream->list
+    (part2-set-up-linear-systems in-port))
+   (list
+    "4 equations, 6 unknowns"
+    "5 equations, 5 unknowns"
+    "6 equations, 4 unknowns"
+    )))
+
+  
+(time
+ (let ([in-port
+        (open-input-file "test-data/input-day10-10.txt")])
+   (stream->list
+    (part2-set-up-linear-systems in-port)
+    ))) 

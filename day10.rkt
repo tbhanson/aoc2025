@@ -15,7 +15,7 @@
   [toggle-paths-from-with-hash (-> list? exact-nonnegative-integer? hash? hash?)]
   [find-length-of-shortest-toggle-path (-> string? list? exact-nonnegative-integer?)]
   [total-part1-button-presses (-> port? exact-nonnegative-integer?)]
-  ; part 2 (several failed attempts by claude.ai)
+  ; part 2 (my first attempt after several failed attempts by claude.ai)
   [distance-to-goal (-> (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?) exact-nonnegative-integer?)]
   [not-closer-to-goal? (-> (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?) boolean?)]
   [part2-paths-from-with-hash (->
@@ -24,6 +24,10 @@
                                (listof exact-nonnegative-integer?) exact-nonnegative-integer? hash? hash?)]
   [find-length-of-shortest-part2-path (-> string? list? exact-nonnegative-integer?)]
   [find-total-part2-button-presses (-> port? exact-nonnegative-integer?)]
+
+  ; my first attempt is too slow; i will think about linear equations...
+  [characterize-part2-linear-system (-> (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?))]
+  [part2-set-up-linear-systems (-> port? stream?)]
 
   ))
 
@@ -376,3 +380,35 @@
                (find-length-of-shortest-part2-path joltage-goal button-choices)])
           ;(printf "line ~a subtotal: ~a~n" line-number sub-total)
           (+ result sub-total))))))
+
+; state-to-reach corresponds to number of unkowns
+; each of button-choices represents an equation
+(define (characterize-part2-linear-system state-to-reach button-choices)
+  (list
+   (length button-choices)
+   (length state-to-reach)
+   ))
+
+
+(define (part2-set-up-linear-systems in-port)
+  (define (iter result-so-far remaining-parsed-lines)
+    (if (stream-empty? remaining-parsed-lines)
+        result-so-far
+        (let ([next-parsed-line (stream-first remaining-parsed-lines)]
+              [new-remaining-parsed-lines (stream-rest remaining-parsed-lines)])
+          (let ([linear-system-characterization
+                 (characterize-part2-linear-system
+                  (caddr next-parsed-line)
+                  (cadr next-parsed-line))])
+            (iter
+             (stream-cons
+              (format "~a equations, ~a unknowns"
+                      (car linear-system-characterization)
+                      (cadr linear-system-characterization))
+              result-so-far)
+             new-remaining-parsed-lines)))))
+                       
+  (let ([stream-of-parsed-lines
+         (read-manual-line-bits-parsed in-port)])
+    (iter empty-stream stream-of-parsed-lines)))
+    
