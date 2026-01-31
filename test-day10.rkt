@@ -142,6 +142,17 @@
 (check-true
  (not-closer-to-goal? (list 1) (list 1) (list 2)))
 
+(check-true
+ (joltage-<=? (list 0) (list 0)))
+
+(check-true
+ (joltage-<=? (list 0) (list 1)))
+
+(check-true
+ (joltage-<=? (list 0 1 2) (list 0 1 2)))
+
+(check-false
+ (joltage-<=? (list 0 1 2) (list 0 1 1)))
 
 
 (let ([in-port
@@ -151,36 +162,29 @@
    (find-total-part2-button-presses in-port)
    33))
 
-;; (time
-;;  (let ([in-port
-;;         (open-input-file "test-data/input-day10-10.txt")])
-;;    (check-equal?
-;;     (find-total-part2-button-presses in-port)
-;;     30)))
-
+; non-test against small sample
 (let ([in-port
-       (open-input-string sample-input)])
-
-  (check-equal?
-   (stream->list
-    (part2-set-up-linear-systems in-port))
-   (list
-    "4 equations, 6 unknowns"
-    "5 equations, 5 unknowns"
-    "6 equations, 4 unknowns"
-    )))
-
+       ;(open-input-string sample-input)])
+       (open-input-file "test-data/input-day10-10.txt")])
   
-(time
- (let ([in-port
-        (open-input-file "test-data/input-day10-10.txt")])
-   (stream->list
-    (part2-set-up-linear-systems in-port)
-    ))) 
+  (let ([stream-of-parsed-lines
+         (read-manual-line-bits-parsed in-port)])
+    (for ([next-parsed-line stream-of-parsed-lines]
+          [line-number (in-naturals 1)])
+      (let ([joltage-goal (caddr next-parsed-line)]
+            [button-choices (cadr next-parsed-line)])
 
-; https://docs.racket-lang.org/math/matrix_solve.html
-(require math/matrix)
+        (printf " (part2-greedily-get-close-but-below-goal ~a ~a)~n" joltage-goal button-choices)
+        (printf " --> ~a~n"
+                (part2-greedily-get-close-but-below-goal joltage-goal button-choices))))))
 
-(define M (matrix [[7 5] [3 -2]]))
-(define B0 (col-matrix [3 22]))
-(matrix-solve M B0)
+
+
+      ;; (time
+      ;;  (let ([in-port
+      ;;         (open-input-file "test-data/input-day10-10.txt")])
+      ;;    (check-equal?
+      ;;     (find-total-part2-button-presses in-port)
+      ;;     30)))
+
+      

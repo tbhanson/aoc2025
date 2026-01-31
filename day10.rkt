@@ -25,10 +25,9 @@
   [find-length-of-shortest-part2-path (-> string? list? exact-nonnegative-integer?)]
   [find-total-part2-button-presses (-> port? exact-nonnegative-integer?)]
 
-  ; my first attempt is too slow; i will think about linear equations...
-  [characterize-part2-linear-system (-> (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?))]
-  [part2-set-up-linear-systems (-> port? stream?)]
-
+  ; provisionally rejecting linear equations; try greedily getting as close to, but under the goal as we can; how long does that take?
+  [joltage-<=? (-> (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?) boolean?)]
+  [part2-greedily-get-close-but-below-goal (-> (listof exact-nonnegative-integer?) (listof (listof exact-nonnegative-integer?)) list?)]
   ))
 
   
@@ -284,23 +283,25 @@
   (let ([at-least-distance (distance-to-goal at-least-state goal-state)]
         [compare-distance  (distance-to-goal inquire-state goal-state)])
     (>= compare-distance at-least-distance)))
-        
+
+(define (joltage-<=? j1 j2)
+  (stream-andmap
+   (lambda (j-pair) (<= (car j-pair) (cdr j-pair)))
+   (apply map cons (list j1 j2))))
                     
-                    
+(define (apply-op op state move)
+  (let ([state-length (length state)])
+    (let ([new-state
+           (for/list
+               ([state_i state]
+                [i (in-range state-length)])
+             (if (member i move)
+                 (op state_i 1)
+                 state_i))])
+      ;(printf "(apply-op ~a ~a ~a) --> ~a~n" op state move new-state)
+      new-state)))                   
   
 (define (part2-paths-from-with-hash goal-state add-or-subtract button-choices max-depth hash-til-now)
-  (define (apply-op op state move)
-    (let ([state-length (length state)])
-      (let ([new-state
-             (for/list
-                 ([state_i state]
-                  [i (in-range state-length)])
-               (if (member i move)
-                   (op state_i 1)
-                   state_i))])
-        ;(printf "(apply-op ~a ~a ~a) --> ~a~n" op state move new-state)
-        new-state)))
-    
   (let ([depth-so-far
          (for/fold ([result 0])
                    ([next-node-path (hash-values hash-til-now)])
@@ -399,43 +400,61 @@
           ;(printf "line ~a subtotal: ~a~n" line-number sub-total)
           (+ result sub-total))))))
 
-; state-to-reach corresponds to number of unkowns
-; each of button-choices represents an equation
-(define (characterize-part2-linear-system state-to-reach button-choices)
-  (list
-   (length button-choices)
-   (length state-to-reach)
-   ))
+(define (part2-greedily-get-close-but-below-goal state-to-reach button-choices)
+  (define (not-too-far? button state-so-far)
+    (let ([state-if (apply-op + state-so-far button)])
+      (joltage-<=? state-if state-to-reach)))
 
-(define (part2-linear-system state-to-reach button-choices)
-  empty-stream
-;;   (let ([x-column (col-matrix (list->array state-to-reach))])
-;;     
-;;     (list
-;;      (length button-choices)
-;;      (length state-to-reach)
-;;      ))
-  )
+  (define (button-size button)
+    (for/fold ([sum 0])
+              ([sub-button button])
+      (+ sum sub-button)))
 
-
-(define (part2-set-up-linear-systems in-port)
-  (define (iter result-so-far remaining-parsed-lines)
-    (if (stream-empty? remaining-parsed-lines)
-        result-so-far
-        (let ([next-parsed-line (stream-first remaining-parsed-lines)]
-              [new-remaining-parsed-lines (stream-rest remaining-parsed-lines)])
-          (let ([linear-system-characterization
-                 (characterize-part2-linear-system
-                  (caddr next-parsed-line)
-                  (cadr next-parsed-line))])
+  (define (best-button current-state buttons)
+    (let-values ([(the-best-button best-distance)
+                  (for/fold ([best-button-so-far (car buttons)]
+                             [best-distance-so-far
+                              (distance-to-goal
+                               (apply-op + current-state (car buttons))
+                               state-to-reach)])
+                            ([next-button (cdr buttons)])
+                    (let ([distance-from-next-button
+                           (distance-to-goal
+                            (apply-op + current-state next-button)
+                            state-to-reach)])
+                      (if (< distance-from-next-button best-distance-so-far)
+                          (values next-button distance-from-next-button)
+                          (values best-button-so-far best-distance-so-far))))])
+      the-best-button))
+  
+  (define (iter path-so-far state-so-far)
+    (let ([next-options
+           (filter (lambda (button) (not-too-far? button state-so-far))
+                   button-choices)])
+      (if (null? next-options)
+          path-so-far
+          (let ([greedy-button
+                 (best-button state-so-far next-options)])
             (iter
-             (stream-cons
-              (format "~a equations, ~a unknowns"
-                      (car linear-system-characterization)
-                      (cadr linear-system-characterization))
-              result-so-far)
-             new-remaining-parsed-lines)))))
-                       
-  (let ([stream-of-parsed-lines
-         (read-manual-line-bits-parsed in-port)])
-    (iter empty-stream stream-of-parsed-lines)))
+             (cons greedy-button path-so-far)
+             (apply-op + state-so-far greedy-button))))))
+
+  (printf "(part2-greedily-get-close-but-below-goal ~a ~a)~n" state-to-reach button-choices)
+  (let ([state-length (length state-to-reach)])
+    (let ([initial-state (make-list state-length 0)])
+      (let ([result
+             (iter '() initial-state)])
+        (printf "--> ~a~n" result)
+        (let ([would-take-us-to
+               (for/fold ([state initial-state])
+                         ([button result])
+                 (apply-op + state button))])
+          (printf " (this would take us to ~a (~a short of goal: ~a)~n"
+                  would-take-us-to
+                  (distance-to-goal
+                   would-take-us-to
+                   state-to-reach)
+                  state-to-reach)
+          result
+          )))))
+         
