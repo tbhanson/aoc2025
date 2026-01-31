@@ -177,3 +177,10 @@
    (stream->list
     (part2-set-up-linear-systems in-port)
     ))) 
+
+; https://docs.racket-lang.org/math/matrix_solve.html
+(require math/matrix)
+
+(define M (matrix [[7 5] [3 -2]]))
+(define B0 (col-matrix [3 22]))
+(matrix-solve M B0)

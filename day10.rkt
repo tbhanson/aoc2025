@@ -389,6 +389,16 @@
    (length state-to-reach)
    ))
 
+(define (part2-linear-system state-to-reach button-choices)
+  empty-stream
+;;   (let ([x-column (col-matrix (list->array state-to-reach))])
+;;     
+;;     (list
+;;      (length button-choices)
+;;      (length state-to-reach)
+;;      ))
+  )
+
 
 (define (part2-set-up-linear-systems in-port)
   (define (iter result-so-far remaining-parsed-lines)
@@ -411,4 +421,3 @@
   (let ([stream-of-parsed-lines
          (read-manual-line-bits-parsed in-port)])
     (iter empty-stream stream-of-parsed-lines)))
-    
