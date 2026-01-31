@@ -254,6 +254,24 @@
 ;; thinking about it, it feels as though I can adapt what I did in part 1 (working from start and back from finish until I find a meeting point) -- different, but analogous
 ;; the first naive approach is too slow however (solves the small sample, but not even line 1 of the real input); too many options and steps, me thinks;
 ;; what about greedy? what about ruling out steps that take us away from goal (at least until we're close?) ?
+;; NB: I explored the idea of using linear algebra, but just the first 10 real cases make this seem infeasible:
+;; '("5 equations, 6 unknowns"
+;;   "4 equations, 4 unknowns"
+;;   "9 equations, 9 unknowns"
+;;   "9 equations, 10 unknowns"
+;;   "7 equations, 8 unknowns"
+;;   "13 equations, 10 unknowns"
+;;   "4 equations, 5 unknowns"
+;;   "8 equations, 9 unknowns"
+;;   "8 equations, 7 unknowns"
+;;   "10 equations, 10 unknowns")
+;;
+;; so now I'm thinking maybe a "greedy" approach might be better:
+;; at each step choose whatever button take you closest to the goal (what about ties? flip a coin?) until no button works (any button would take us over the goal);
+;; this step would seem to go fast -- o(n) or something
+;; not quite sure what to do after that; do we remember where we've been, back off the last step and try an approach like the first one we tried from there (starting much closer
+;; to the goal?); if that doesn't work back off again, ...?
+
 
 (define (distance-to-goal from to)
   (for/fold ([sum 0])
