@@ -22,12 +22,13 @@
                                (listof exact-nonnegative-integer?)
                                (-> exact-nonnegative-integer? exact-nonnegative-integer? exact-nonnegative-integer?)
                                (listof exact-nonnegative-integer?) exact-nonnegative-integer? hash? hash?)]
-  [find-length-of-shortest-part2-path (-> string? list? exact-nonnegative-integer?)]
+  [find-length-of-shortest-part2-path (-> (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?) exact-nonnegative-integer?)]
   [find-total-part2-button-presses (-> port? exact-nonnegative-integer?)]
 
   ; provisionally rejecting linear equations; try greedily getting as close to, but under the goal as we can; how long does that take?
   [joltage-<=? (-> (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?) boolean?)]
   [part2-greedily-get-close-but-below-goal (-> (listof exact-nonnegative-integer?) (listof (listof exact-nonnegative-integer?)) list?)]
+  [greedily-find-length-of-shortest-part2-path (-> string? list? exact-nonnegative-integer?)]
   ))
 
   
@@ -341,14 +342,22 @@
              (distance-to-goal initial-state state-to-reach)])
       
         (define (shortest-path nodes-from-start nodes-from-finish nodes-that-link)
-          (for/fold ([shortest-so-far +inf.0])
-                    ([next-node nodes-that-link])
-            (let ([length-this-way
-                   (+ (length (hash-ref nodes-from-start next-node))
-                      (length (hash-ref nodes-from-finish next-node)))])
-              (if (< length-this-way shortest-so-far)
-                  length-this-way
-                  shortest-so-far))))
+          (let-values ([(distance path)
+                        (for/fold ([shortest-distance-so-far +inf.0]
+                                   [shortest-path-so-far #f])
+                                  ([next-node nodes-that-link])
+                          (let ([length-this-way
+                                 (+ (length (hash-ref nodes-from-start next-node))
+                                    (length (hash-ref nodes-from-finish next-node)))])
+                            (if (< length-this-way shortest-distance-so-far)
+                                (values
+                                 length-this-way
+                                 (append
+                                  (hash-ref nodes-from-start next-node)
+                                  (hash-ref nodes-from-finish next-node)))
+                                (values shortest-distance-so-far shortest-path-so-far))))])
+            (printf "shortest-path: ~a~n" path)
+            distance))
   
         (define (iter nodes-from-start nodes-from-finish current-depth)
           (cond
@@ -393,12 +402,13 @@
                [line-number (in-naturals 1)])
       (let ([joltage-goal (caddr next-parsed-line)]
             [button-choices (cadr next-parsed-line)])
-        ;(printf "line ~a joltage-goal: ~a; button-choices: ~a~n" line-number joltage-goal button-choices)
+        (printf "line ~a joltage-goal: ~a; button-choices: ~a~n" line-number joltage-goal button-choices)
         ;(time
         (let ([sub-total
                (find-length-of-shortest-part2-path joltage-goal button-choices)])
-          ;(printf "line ~a subtotal: ~a~n" line-number sub-total)
+          (printf "line ~a subtotal: ~a~n" line-number sub-total)
           (+ result sub-total))))))
+
 
 (define (part2-greedily-get-close-but-below-goal state-to-reach button-choices)
   (define (not-too-far? button state-so-far)
@@ -457,4 +467,6 @@
                   state-to-reach)
           result
           )))))
-         
+
+(define (greedily-find-length-of-shortest-part2-path state-to-reach button-choices)
+  -1)

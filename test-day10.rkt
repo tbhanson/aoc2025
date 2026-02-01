@@ -164,8 +164,8 @@
 
 ; non-test against small sample
 (let ([in-port
-       ;(open-input-string sample-input)])
-       (open-input-file "test-data/input-day10-10.txt")])
+       (open-input-string sample-input)])
+       ;(open-input-file "test-data/input-day10-10.txt")])
   
   (let ([stream-of-parsed-lines
          (read-manual-line-bits-parsed in-port)])
