@@ -174,9 +174,9 @@
       (let ([joltage-goal (caddr next-parsed-line)]
             [button-choices (cadr next-parsed-line)])
 
-        (printf " (part2-greedily-get-close-but-below-goal ~a ~a)~n" joltage-goal button-choices)
+        (printf " (part2-greedily-get-close-to-but-not-past-goal ~a ~a)~n" joltage-goal button-choices)
         (printf " --> ~a~n"
-                (part2-greedily-get-close-but-below-goal joltage-goal button-choices))))))
+                (part2-greedily-get-close-to-but-not-past-goal joltage-goal button-choices))))))
 
 
 

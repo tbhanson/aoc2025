@@ -27,8 +27,8 @@
 
   ; provisionally rejecting linear equations; try greedily getting as close to, but under the goal as we can; how long does that take?
   [joltage-<=? (-> (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?) boolean?)]
-  [part2-greedily-get-close-but-below-goal (-> (listof exact-nonnegative-integer?) (listof (listof exact-nonnegative-integer?)) list?)]
-  [greedily-find-length-of-shortest-part2-path (-> string? list? exact-nonnegative-integer?)]
+  [part2-greedily-get-close-to-but-not-past-goal (-> (listof exact-nonnegative-integer?) (listof (listof exact-nonnegative-integer?)) list?)]
+  [greedily-find-length-of-shortest-part2-path (-> (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?) exact-nonnegative-integer?)]
   ))
 
   
@@ -410,7 +410,7 @@
           (+ result sub-total))))))
 
 
-(define (part2-greedily-get-close-but-below-goal state-to-reach button-choices)
+(define (part2-greedily-get-close-to-but-not-past-goal state-to-reach button-choices)
   (define (not-too-far? button state-so-far)
     (let ([state-if (apply-op + state-so-far button)])
       (joltage-<=? state-if state-to-reach)))
@@ -449,7 +449,7 @@
              (cons greedy-button path-so-far)
              (apply-op + state-so-far greedy-button))))))
 
-  (printf "(part2-greedily-get-close-but-below-goal ~a ~a)~n" state-to-reach button-choices)
+  (printf "(part2-greedily-get-close-to-but-not-past-goal ~a ~a)~n" state-to-reach button-choices)
   (let ([state-length (length state-to-reach)])
     (let ([initial-state (make-list state-length 0)])
       (let ([result
@@ -468,5 +468,29 @@
           result
           )))))
 
+; basic idea:
+; - get close to goal greedily (if by chance we're at goal, we're done)
+; - use backtracking from this location:
+;  - iterate from a queue of positions short of goal, trying complete forward search (akin to first attempt at part 2 -- simplify the double-hash approach above) until we reach goal or fail
+;   - anytime we reach goal we're done (?)
+;   - otherwise we replace the queue with all the positions one-button step back from the positions that were in the queue and re-iterate
+
 (define (greedily-find-length-of-shortest-part2-path state-to-reach button-choices)
-  -1)
+  (let ([state-length (length state-to-reach)])
+    (let ([initial-state (make-list state-length 0)])
+      (let ([greedy-best (part2-greedily-get-close-to-but-not-past-goal state-to-reach button-choices)])
+        (let ([would-take-us-to
+               (for/fold ([state initial-state])
+                         ([button button-choices])
+                 (apply-op + state button))])
+          (printf " (this would take us to ~a (~a short of goal: ~a)~n"
+                  would-take-us-to
+                  (distance-to-goal
+                   would-take-us-to
+                   state-to-reach)
+                  state-to-reach)
+      
+          ; much to do!
+          ; for now just
+          greedy-best
+          )))))
