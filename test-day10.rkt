@@ -179,6 +179,23 @@
                 (part2-greedily-get-close-to-but-not-past-goal joltage-goal button-choices))))))
 
 
+; current attempt finishes sample-input, but not first 10 lines of real input 
+(let ([in-port
+       (open-input-string sample-input)])
+       ;(open-input-file "test-data/input-day10-10.txt")])
+  
+  (let ([stream-of-parsed-lines
+         (read-manual-line-bits-parsed in-port)])
+    (for ([next-parsed-line stream-of-parsed-lines]
+          [line-number (in-naturals 1)])
+      (let ([joltage-goal (caddr next-parsed-line)]
+            [button-choices (cadr next-parsed-line)])
+
+        (printf " ~a: (greedily-find-length-of-shortest-part2-path ~a ~a)~n" line-number joltage-goal button-choices)
+        (printf " --> ~a~n"
+                (greedily-find-length-of-shortest-part2-path joltage-goal button-choices))))))
+
+
 
       ;; (time
       ;;  (let ([in-port

@@ -28,7 +28,8 @@
   ; provisionally rejecting linear equations; try greedily getting as close to, but under the goal as we can; how long does that take?
   [joltage-<=? (-> (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?) boolean?)]
   [part2-greedily-get-close-to-but-not-past-goal (-> (listof exact-nonnegative-integer?) (listof (listof exact-nonnegative-integer?)) list?)]
-  [greedily-find-length-of-shortest-part2-path (-> (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?) exact-nonnegative-integer?)]
+  [get-greedy-path-hash (-> (listof exact-nonnegative-integer?) list? hash?)]
+  [greedily-find-length-of-shortest-part2-path (-> (listof exact-nonnegative-integer?) list? exact-nonnegative-integer?)]
   ))
 
   
@@ -303,6 +304,8 @@
       new-state)))                   
   
 (define (part2-paths-from-with-hash goal-state add-or-subtract button-choices max-depth hash-til-now)
+  ;(printf "(part2-paths-from-with-hash ~a ~a ~a ~a ~a)~n" goal-state add-or-subtract button-choices max-depth hash-til-now)
+  
   (let ([depth-so-far
          (for/fold ([result 0])
                    ([next-node-path (hash-values hash-til-now)])
@@ -449,48 +452,97 @@
              (cons greedy-button path-so-far)
              (apply-op + state-so-far greedy-button))))))
 
-  (printf "(part2-greedily-get-close-to-but-not-past-goal ~a ~a)~n" state-to-reach button-choices)
+  ;(printf "(part2-greedily-get-close-to-but-not-past-goal ~a ~a)~n" state-to-reach button-choices)
   (let ([state-length (length state-to-reach)])
     (let ([initial-state (make-list state-length 0)])
       (let ([result
              (iter '() initial-state)])
-        (printf "--> ~a~n" result)
+        ;(printf "--> ~a~n" result)
         (let ([would-take-us-to
                (for/fold ([state initial-state])
                          ([button result])
                  (apply-op + state button))])
-          (printf " (this would take us to ~a (~a short of goal: ~a)~n"
+          ;(printf " (this would take us to ~a (~a short of goal: ~a)~n"
                   would-take-us-to
                   (distance-to-goal
                    would-take-us-to
                    state-to-reach)
                   state-to-reach)
           result
-          )))))
+          ))))
 
-; basic idea:
-; - get close to goal greedily (if by chance we're at goal, we're done)
-; - use backtracking from this location:
-;  - iterate from a queue of positions short of goal, trying complete forward search (akin to first attempt at part 2 -- simplify the double-hash approach above) until we reach goal or fail
-;   - anytime we reach goal we're done (?)
-;   - otherwise we replace the queue with all the positions one-button step back from the positions that were in the queue and re-iterate
+; adjusted basic idea:
+; - again come from both ends
+; - iterate over goal set, distance 0, 1, 2, ... from goal (computing hashes as in previous methods)
+; - each time compare the greedy path up to, not beyond goal
+; - if our furthest point is in the goal set, we're hopefully done (might our greediness have caused us to miss something !!?)
+; since greedy search towards goal from start is so much faster than the exhaustive search from either end, this should improve our time performance considerably, I hope!
+
+
+(define (get-greedy-path-hash starting-state greedy-best-button-sequence)
+  (let-values ([(hash-result state path)
+                (for/fold ([result (make-immutable-hash)]
+                           [state-so-far starting-state]
+                           [path-so-far '()])
+                          ([next-button greedy-best-button-sequence])
+                  (let ([next-path (cons next-button path-so-far)]
+                        [next-state
+                         (apply-op + state-so-far next-button)])
+                    (values
+                     (hash-set result next-state next-path)
+                     next-state
+                     next-path)))])
+    hash-result))
+
+; cobbled together from various pieces, almost certainly wrong
 
 (define (greedily-find-length-of-shortest-part2-path state-to-reach button-choices)
-  (let ([state-length (length state-to-reach)])
+  (printf "(greedily-find-length-of-shortest-part2-path ~a ~a)~n" state-to-reach button-choices)
+  (let ([state-length (length state-to-reach)]
+        [greedy-best (part2-greedily-get-close-to-but-not-past-goal state-to-reach button-choices)])
+    ;(printf " greedy-best: ~a~n" greedy-best)
     (let ([initial-state (make-list state-length 0)])
-      (let ([greedy-best (part2-greedily-get-close-to-but-not-past-goal state-to-reach button-choices)])
-        (let ([would-take-us-to
-               (for/fold ([state initial-state])
-                         ([button button-choices])
-                 (apply-op + state button))])
-          (printf " (this would take us to ~a (~a short of goal: ~a)~n"
-                  would-take-us-to
-                  (distance-to-goal
-                   would-take-us-to
-                   state-to-reach)
-                  state-to-reach)
-      
-          ; much to do!
-          ; for now just
-          greedy-best
-          )))))
+     (let ([greedy-best-hash (get-greedy-path-hash initial-state greedy-best)]
+           [crude-distance-estimate
+             (distance-to-goal initial-state state-to-reach)])
+
+        (define (shortest-path nodes-from-finish nodes-that-link)
+          (let-values ([(distance path)
+                        (for/fold ([shortest-distance-so-far +inf.0]
+                                   [shortest-path-so-far #f])
+                                  ([next-node nodes-that-link])
+                          (let ([length-this-way
+                                 (+ (length greedy-best)
+                                    (length (hash-ref nodes-from-finish next-node)))])
+                            (if (< length-this-way shortest-distance-so-far)
+                                (values
+                                 length-this-way
+                                 (append
+                                  greedy-best
+                                  (hash-ref nodes-from-finish next-node)))
+                                (values shortest-distance-so-far shortest-path-so-far))))])
+            ;(printf "shortest-path: ~a~n" path)
+            distance))
+        
+        (define (iter nodes-from-finish current-depth)
+          (cond
+            [(> current-depth crude-distance-estimate)
+             (error (format "  are we sure we should ever need more steps than crude-distance-estimate (~a)? (our current-depth is ~a)" crude-distance-estimate current-depth))]
+            
+            [else
+             ;(printf " (iter ~a ~a)~n" nodes-from-finish current-depth)
+             (let ([possible-stepping-stones
+                    (set-intersect
+                     (hash-keys greedy-best-hash)
+                     (hash-keys nodes-from-finish))])
+               (if (not (set-empty? possible-stepping-stones))
+                   (shortest-path nodes-from-finish possible-stepping-stones)
+                   (let ([new-depth (+ 1 current-depth)])
+                     (let ([new-nodes-from-finish
+                            (part2-paths-from-with-hash initial-state - button-choices new-depth nodes-from-finish)]) ; state to reach here is initial-state: we are working backwords
+                       (iter new-nodes-from-finish new-depth)))))]))
+
+        (iter
+         (make-immutable-hash (list (cons state-to-reach '())))
+         0)))))
+
