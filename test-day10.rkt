@@ -181,19 +181,27 @@
 
 ; current attempt finishes sample-input, but not first 10 lines of real input 
 (let ([in-port
-       (open-input-string sample-input)])
-       ;(open-input-file "test-data/input-day10-10.txt")])
+       ;(open-input-string sample-input)])
+       (open-input-file "test-data/input-day10-10.txt")])
   
   (let ([stream-of-parsed-lines
          (read-manual-line-bits-parsed in-port)])
-    (for ([next-parsed-line stream-of-parsed-lines]
-          [line-number (in-naturals 1)])
-      (let ([joltage-goal (caddr next-parsed-line)]
-            [button-choices (cadr next-parsed-line)])
-
-        (printf " ~a: (greedily-find-length-of-shortest-part2-path ~a ~a)~n" line-number joltage-goal button-choices)
-        (printf " --> ~a~n"
-                (greedily-find-length-of-shortest-part2-path joltage-goal button-choices))))))
+    (let ([count-finished
+           (for/fold ([count-non-infinite-paths 0])
+                     ([next-parsed-line stream-of-parsed-lines]
+                      [line-number (in-naturals 1)])
+             (let ([joltage-goal (caddr next-parsed-line)]
+                   [button-choices (cadr next-parsed-line)])
+               
+               (let ([this-shortest-path
+                      (greedily-find-length-of-shortest-part2-path joltage-goal button-choices)])
+                 (printf " ~a: (greedily-find-length-of-shortest-part2-path ~a ~a)~n" line-number joltage-goal button-choices)
+                 (printf " --> ~a~n" this-shortest-path)
+                 (if (< this-shortest-path +inf.0)
+                     (+ count-non-infinite-paths 1)
+                     count-non-infinite-paths))))])
+      (printf "we computed ~a paths without timing out~n"  count-finished))))
+                  
 
 
 

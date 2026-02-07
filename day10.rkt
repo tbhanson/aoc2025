@@ -29,7 +29,7 @@
   [joltage-<=? (-> (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?) boolean?)]
   [part2-greedily-get-close-to-but-not-past-goal (-> (listof exact-nonnegative-integer?) (listof (listof exact-nonnegative-integer?)) list?)]
   [get-greedy-path-hash (-> (listof exact-nonnegative-integer?) list? hash?)]
-  [greedily-find-length-of-shortest-part2-path (-> (listof exact-nonnegative-integer?) list? exact-nonnegative-integer?)]
+  [greedily-find-length-of-shortest-part2-path (-> (listof exact-nonnegative-integer?) list? number?)]
   ))
 
   
@@ -494,7 +494,27 @@
                      next-path)))])
     hash-result))
 
-; cobbled together from various pieces, almost certainly wrong
+; with help from claude!
+(define (call-with-timeout/custodian thunk timeout-seconds [timeout-value +inf.0])
+  (define cust (make-custodian))
+  (define result-box (box #f))
+  (define done? (make-semaphore 0))
+  
+  (parameterize ([current-custodian cust])
+    (thread
+     (lambda ()
+       (set-box! result-box (thunk))
+       (semaphore-post done?))))
+  
+  (define finished? (sync/timeout timeout-seconds done?))
+  
+  (unless finished?
+    (custodian-shutdown-all cust))
+  
+  (if finished?
+      (unbox result-box)
+      timeout-value))
+
 
 (define (greedily-find-length-of-shortest-part2-path state-to-reach button-choices)
   (printf "(greedily-find-length-of-shortest-part2-path ~a ~a)~n" state-to-reach button-choices)
@@ -542,7 +562,13 @@
                             (part2-paths-from-with-hash initial-state - button-choices new-depth nodes-from-finish)]) ; state to reach here is initial-state: we are working backwords
                        (iter new-nodes-from-finish new-depth)))))]))
 
-        (iter
-         (make-immutable-hash (list (cons state-to-reach '())))
-         0)))))
+       (let ([timeout-seconds 2])
+         (let ([result
+                (call-with-timeout/custodian
+                 (lambda ()
+                   (iter
+                    (make-immutable-hash (list (cons state-to-reach '())))
+                    0))
+                 timeout-seconds)])
+           result))))))
 
