@@ -33,5 +33,12 @@
  (list
   (cons "aaa" (list "you" "hhh"))
   (cons "you" (list "bbb" "ccc"))))
-  
-  
+
+; their small sample problem
+(let ([sample-input-port (open-input-string sample-input)])
+  (let ([sample-graph-lines (read-graph sample-input-port)])
+    (check-equal?
+     (count-paths-from-you-to-out sample-graph-lines)
+     5)))
+
+         
