@@ -41,4 +41,15 @@
      (count-paths-from-you-to-out sample-graph-lines)
      5)))
 
+; part 1
+;; (time
+;;  (let ([input-port
+;;         (open-input-file "test-data/input-day11-1.txt")])
+;;    (let ([graph-lines (read-graph input-port)])
+;;      (check-equal?
+;;       (count-paths-from-you-to-out graph-lines)
+;;       5))))
+
+
          
+ 
