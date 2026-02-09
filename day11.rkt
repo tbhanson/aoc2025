@@ -8,9 +8,15 @@
   [read-graph (-> port? stream?)]
   [count-paths-from-you-to-out (-> stream? exact-nonnegative-integer?)]
   [find-paths-from-node-to-out (-> stream? string? stream?)]
+  ;part 2
   [part2-path-count (-> stream? exact-nonnegative-integer?)]
   [generator-of-paths-from-svr-to-out  (-> stream? generator?)]
   [part2-generated-path-count (-> stream? exact-nonnegative-integer?)]
+  ; part 2, second pass
+  [linked-nodes-hash (-> stream? hash?)]
+  ;;   [predecessor-nodes (-> hash? hash?)]
+  ;;   
+  ;;   [find-predecessors-of (-> stream? string? 
   ))
 
   
@@ -30,11 +36,14 @@
                    (cons node-name links)])
               (stream-cons next-pair (read-graph in-port))))))))
 
+(define (linked-nodes-hash graph-node-stream)
+  (for/fold ([result (make-immutable-hash)])
+            ([next-node graph-node-stream])
+    (hash-set result (car next-node) (cdr next-node))))
+  
+          
 (define (count-paths-from-you-to-out graph-node-stream)
-  (let ([node-hash
-         (for/fold ([result (make-immutable-hash)])
-                   ([next-node graph-node-stream])
-           (hash-set result (car next-node) (cdr next-node)))])
+  (let ([node-hash (linked-nodes-hash graph-node-stream)])
       
     (define (count-from-node-named node-name)
       (let ([linked-node-names (hash-ref node-hash node-name)])
@@ -51,10 +60,7 @@
       
 
 (define (find-paths-from-node-to-out graph-node-stream node-name)
-  (let ([node-hash
-         (for/fold ([result (make-immutable-hash)])
-                   ([next-node graph-node-stream])
-           (hash-set result (car next-node) (cdr next-node)))])
+  (let ([node-hash (linked-nodes-hash graph-node-stream)])
       
     (define (paths-to-out-from-node-named node-name path-to-here)
       (let ([linked-node-names (hash-ref node-hash node-name)])
@@ -77,11 +83,7 @@
 
 (define (generator-of-paths-from-svr-to-out graph-node-stream)
   (printf "(generator-of-paths-from-svr-to-out ...)~n")
-  (let ([node-hash
-         (for/fold ([result (make-immutable-hash)])
-                   ([next-node graph-node-stream])
-           (hash-set result (car next-node) (cdr next-node)))])
-    (printf " (hash-count node-hash): ~a~n" (hash-count node-hash))
+  (let ([node-hash (linked-nodes-hash graph-node-stream)])
     
     (generator ()
                (define (paths-to-out-from-node-named node-name path-to-here)
@@ -139,6 +141,5 @@
                         )
                       (values new-sum new-dac-count new-fft-count)
                       ))])
-                sum)))
+      sum)))
 
-                    
