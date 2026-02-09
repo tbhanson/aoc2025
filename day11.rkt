@@ -79,25 +79,20 @@
          (for/fold ([result (make-immutable-hash)])
                    ([next-node graph-node-stream])
            (hash-set result (car next-node) (cdr next-node)))])
-
-    (define paths-to-out-from-node-named
-      (generator
-       (node-name path-to-here)
-
-       (let ([linked-node-names (hash-ref node-hash node-name)])
-         (cond [(member "out" linked-node-names)
-                (yield
-                 (cons "out" path-to-here))]
-
-              [else
-               (let ([new-path
-                      (cons node-name path-to-here)])
-                 (for ([linked-node-name linked-node-names])
-                   (paths-to-out-from-node-named
-                    linked-node-name
-                    new-path)))]))))
-
-    paths-to-out-from-node-named))
+    
+    (generator ()
+      (define (paths-to-out-from-node-named node-name path-to-here)
+        (let ([linked-node-names (hash-ref node-hash node-name)])
+          (cond [(member "out" linked-node-names)
+                 (yield (reverse (cons "out" path-to-here)))]
+                [else
+                 (let ([new-path (cons node-name path-to-here)])
+                   (for ([linked-node-name linked-node-names])
+                     (paths-to-out-from-node-named
+                      linked-node-name
+                      new-path)))])))
+      
+      (paths-to-out-from-node-named "svr" '("svr")))))
 
 (define (part2-path-count graph-node-stream)
   (stream-length
