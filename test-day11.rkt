@@ -89,7 +89,9 @@
 (let ([part2-sample-input-port (open-input-string part2-sample-input)])
   (let ([part2-sample-graph-lines (read-graph part2-sample-input-port)])
     (let ([gen (generator-of-paths-from-svr-to-out part2-sample-graph-lines)])
-      (gen))))  ; Just call gen with no arguments
+      (check-equal?
+       (gen)
+       (string-split "svr,aaa,fft,ccc,ddd,hub,fff,ggg,out" ",")))))
  
 
   ; this ran a few minutes before running out of memory (over 16GB, presumably)

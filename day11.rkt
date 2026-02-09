@@ -86,11 +86,10 @@
           (cond [(member "out" linked-node-names)
                  (yield (reverse (cons "out" path-to-here)))]
                 [else
-                 (let ([new-path (cons node-name path-to-here)])
-                   (for ([linked-node-name linked-node-names])
-                     (paths-to-out-from-node-named
-                      linked-node-name
-                      new-path)))])))
+                 (for ([linked-node-name linked-node-names])
+                   (paths-to-out-from-node-named
+                    linked-node-name
+                    (cons linked-node-name path-to-here)))])))
       
       (paths-to-out-from-node-named "svr" '("svr")))))
 
