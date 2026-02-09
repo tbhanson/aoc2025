@@ -86,3 +86,13 @@
      (part2-path-count part2-sample-graph-lines)
      2)))
 
+; this ran a few minutes before running out of memory (over 16GB, presumably)
+; feels like maybe we're building the whole stream before filtering?
+;; (time
+;;  (let ([input-port
+;;         (open-input-file "test-data/input-day11-1.txt")])
+;;    (let ([graph-lines (read-graph input-port)])
+;;      (check-equal?
+;;       (part2-path-count graph-lines)
+;;       5))))
+
