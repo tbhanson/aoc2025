@@ -1,5 +1,7 @@
 #lang racket
 
+(require racket/generator)
+
 (provide
  (contract-out
   ;part 1
@@ -7,6 +9,7 @@
   [count-paths-from-you-to-out (-> stream? exact-nonnegative-integer?)]
   [find-paths-from-node-to-out (-> stream? string? stream?)]
   [part2-path-count (-> stream? exact-nonnegative-integer?)]
+  [generator-of-paths-from-svr-to-out  (-> stream? generator?)]
   ))
 
   
@@ -70,7 +73,31 @@
                    (cons linked-node-name path-to-here))))])))
 
     (stream-map reverse (paths-to-out-from-node-named node-name (list node-name)))))
-    
+
+(define (generator-of-paths-from-svr-to-out graph-node-stream)
+  (let ([node-hash
+         (for/fold ([result (make-immutable-hash)])
+                   ([next-node graph-node-stream])
+           (hash-set result (car next-node) (cdr next-node)))])
+
+    (define paths-to-out-from-node-named
+      (generator
+       (node-name path-to-here)
+
+       (let ([linked-node-names (hash-ref node-hash node-name)])
+         (cond [(member "out" linked-node-names)
+                (yield
+                 (cons "out" path-to-here))]
+
+              [else
+               (let ([new-path
+                      (cons node-name path-to-here)])
+                 (for ([linked-node-name linked-node-names])
+                   (paths-to-out-from-node-named
+                    linked-node-name
+                    new-path)))]))))
+
+    paths-to-out-from-node-named))
 
 (define (part2-path-count graph-node-stream)
   (stream-length
@@ -79,4 +106,8 @@
       (and (member "dac" path)
            (member "fft" path)))
     (find-paths-from-node-to-out graph-node-stream "svr"))))
+
+;; (define (part2-generated-path-count graph-node-stream)
+;;   (let ([gen (generator-of-paths-from-svr-to-out graph-node-stream)])
+;;     (gen "svr" '())))
    
