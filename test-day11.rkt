@@ -50,6 +50,39 @@
 ;;       (count-paths-from-you-to-out graph-lines)
 ;;       5))))
 
+; part 2
 
-         
- 
+(define
+  part2-sample-input
+  (format
+   (string-append
+    "svr: aaa bbb~n"
+    "aaa: fft~n"
+    "fft: ccc~n"
+    "bbb: tty~n"
+    "tty: ccc~n"
+    "ccc: ddd eee~n"
+    "ddd: hub~n"
+    "hub: fff~n"
+    "eee: dac~n"
+    "dac: fff~n"
+    "fff: ggg hhh~n"
+    "ggg: out~n"
+    "hhh: out~n"
+    )))
+
+; 2 tests based on their part 2 sample
+(let ([part2-sample-input-port (open-input-string part2-sample-input)])
+  (let ([part2-sample-graph-lines (read-graph part2-sample-input-port)])
+    (check-equal?
+     (stream-first
+      (find-paths-from-node-to-out part2-sample-graph-lines "svr"))
+     (string-split "svr,aaa,fft,ccc,ddd,hub,fff,ggg,out" ","))))
+
+
+(let ([part2-sample-input-port (open-input-string part2-sample-input)])
+  (let ([part2-sample-graph-lines (read-graph part2-sample-input-port)])
+    (check-equal?
+     (part2-path-count part2-sample-graph-lines)
+     2)))
+

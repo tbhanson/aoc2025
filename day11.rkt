@@ -5,6 +5,8 @@
   ;part 1
   [read-graph (-> port? stream?)]
   [count-paths-from-you-to-out (-> stream? exact-nonnegative-integer?)]
+  [find-paths-from-node-to-out (-> stream? string? stream?)]
+  [part2-path-count (-> stream? exact-nonnegative-integer?)]
   ))
 
   
@@ -30,10 +32,10 @@
                    ([next-node graph-node-stream])
            (hash-set result (car next-node) (cdr next-node)))])
       
-      (define (count-from-node-named node-name)
-        (let ([linked-node-names (hash-ref node-hash node-name)])
-          (cond [(member "out" linked-node-names)
-                 1]
+    (define (count-from-node-named node-name)
+      (let ([linked-node-names (hash-ref node-hash node-name)])
+        (cond [(member "out" linked-node-names)
+               1]
 
               [else
                (for/fold ([sum 0])
@@ -43,4 +45,38 @@
     (count-from-node-named "you")
     ))
       
+
+(define (find-paths-from-node-to-out graph-node-stream node-name)
+  (let ([node-hash
+         (for/fold ([result (make-immutable-hash)])
+                   ([next-node graph-node-stream])
+           (hash-set result (car next-node) (cdr next-node)))])
       
+    (define (paths-to-out-from-node-named node-name path-to-here)
+      (let ([linked-node-names (hash-ref node-hash node-name)])
+        (cond [(member "out" linked-node-names)
+               (stream-cons
+                (cons "out"
+                      path-to-here)
+                empty-stream)]
+
+              [else
+               (for/fold ([paths-from-here empty-stream])
+                         ([linked-node-name linked-node-names])
+                 (stream-append
+                  paths-from-here
+                  (paths-to-out-from-node-named
+                   linked-node-name
+                   (cons linked-node-name path-to-here))))])))
+
+    (stream-map reverse (paths-to-out-from-node-named node-name (list node-name)))))
+    
+
+(define (part2-path-count graph-node-stream)
+  (stream-length
+   (stream-filter
+    (lambda (path)
+      (and (member "dac" path)
+           (member "fft" path)))
+    (find-paths-from-node-to-out graph-node-stream "svr"))))
+   
