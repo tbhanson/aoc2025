@@ -10,6 +10,7 @@
   [find-paths-from-node-to-out (-> stream? string? stream?)]
   [part2-path-count (-> stream? exact-nonnegative-integer?)]
   [generator-of-paths-from-svr-to-out  (-> stream? generator?)]
+  [part2-generated-path-count (-> stream? exact-nonnegative-integer?)]
   ))
 
   
@@ -101,7 +102,14 @@
            (member "fft" path)))
     (find-paths-from-node-to-out graph-node-stream "svr"))))
 
-;; (define (part2-generated-path-count graph-node-stream)
-;;   (let ([gen (generator-of-paths-from-svr-to-out graph-node-stream)])
-;;     (gen "svr" '())))
-   
+(define (part2-generated-path-count graph-node-stream)
+  (let ([gen (generator-of-paths-from-svr-to-out graph-node-stream)])
+    (for/fold ([sum 0])
+              ([next-path (in-producer gen)]
+               #:break (void? next-path))
+     ; (printf "sum: ~a; next-path: ~a~n" sum next-path)
+      (if (and (member "dac" next-path)
+               (member "fft" next-path))
+          (+ sum 1)
+          sum))))
+      

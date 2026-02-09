@@ -92,16 +92,21 @@
       (check-equal?
        (gen)
        (string-split "svr,aaa,fft,ccc,ddd,hub,fff,ggg,out" ",")))))
- 
 
-  ; this ran a few minutes before running out of memory (over 16GB, presumably)
-  ; feels like maybe we're building the whole stream before filtering?
-  ;; (time
-  ;;  (let ([input-port
-  ;;         (open-input-file "test-data/input-day11-1.txt")])
-  ;;    (let ([graph-lines (read-graph input-port)])
-  ;;      (check-equal?
-  ;;       (part2-path-count graph-lines)
-  ;;       5))))
+(let ([part2-sample-input-port (open-input-string part2-sample-input)])
+  (let ([part2-sample-graph-lines (read-graph part2-sample-input-port)])
+    (check-equal?
+     (part2-generated-path-count part2-sample-graph-lines)
+     2)))
 
-  
+
+; this ran a few minutes before running out of memory (over 16GB, presumably)
+; feels like maybe we're building the whole stream before filtering?
+;; (time
+;;  (let ([input-port
+;;         (open-input-file "test-data/input-day11-1.txt")])
+;;    (let ([graph-lines (read-graph input-port)])
+;;      (check-equal?
+;;       (part2-path-count graph-lines)
+;;       5))))
+
