@@ -105,9 +105,8 @@
 (define (part2-generated-path-count graph-node-stream)
   (let ([gen (generator-of-paths-from-svr-to-out graph-node-stream)])
     (for/fold ([sum 0])
-              ([next-path (in-producer gen)]
-               #:break (void? next-path))
-     ; (printf "sum: ~a; next-path: ~a~n" sum next-path)
+              ([next-path (in-producer gen (void))])  ; void as sentinel
+      ;(printf "sum: ~a; next-path: ~a~n" sum next-path)
       (if (and (member "dac" next-path)
                (member "fft" next-path))
           (+ sum 1)
