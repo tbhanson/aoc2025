@@ -76,23 +76,27 @@
     (stream-map reverse (paths-to-out-from-node-named node-name (list node-name)))))
 
 (define (generator-of-paths-from-svr-to-out graph-node-stream)
+  (printf "(generator-of-paths-from-svr-to-out ...)~n")
   (let ([node-hash
          (for/fold ([result (make-immutable-hash)])
                    ([next-node graph-node-stream])
            (hash-set result (car next-node) (cdr next-node)))])
+    (printf " (hash-count node-hash): ~a~n" (hash-count node-hash))
     
     (generator ()
-      (define (paths-to-out-from-node-named node-name path-to-here)
-        (let ([linked-node-names (hash-ref node-hash node-name)])
-          (cond [(member "out" linked-node-names)
-                 (yield (reverse (cons "out" path-to-here)))]
-                [else
-                 (for ([linked-node-name linked-node-names])
-                   (paths-to-out-from-node-named
-                    linked-node-name
-                    (cons linked-node-name path-to-here)))])))
+               (define (paths-to-out-from-node-named node-name path-to-here)
+                 ;(printf "  (paths-to-out-from-node-named ~a ~a)~n" node-name path-to-here)
+                 (let ([linked-node-names (hash-ref node-hash node-name)])
+                   (cond [(member "out" linked-node-names)
+                          (yield (reverse (cons "out" path-to-here)))]
+                
+                         [else
+                          (for ([linked-node-name linked-node-names])
+                            (paths-to-out-from-node-named
+                             linked-node-name
+                             (cons linked-node-name path-to-here)))])))
       
-      (paths-to-out-from-node-named "svr" '("svr")))))
+               (paths-to-out-from-node-named "svr" '("svr")))))
 
 (define (part2-path-count graph-node-stream)
   (stream-length
@@ -104,11 +108,37 @@
 
 (define (part2-generated-path-count graph-node-stream)
   (let ([gen (generator-of-paths-from-svr-to-out graph-node-stream)])
-    (for/fold ([sum 0])
-              ([next-path (in-producer gen (void))])  ; void as sentinel
-      ;(printf "sum: ~a; next-path: ~a~n" sum next-path)
-      (if (and (member "dac" next-path)
-               (member "fft" next-path))
-          (+ sum 1)
-          sum))))
-      
+    (let-values ([(sum c-dac c-fft)
+                  (for/fold ([sum 0]
+                             [saw-dac-count 0]
+                             [saw-fft-count 0])
+                            ([next-path (in-producer gen (void))] ; void as sentinel
+                             [counter (in-naturals 1)])
+                    (let ([new-sum
+                           (if (and (member "dac" next-path)
+                                    (member "fft" next-path))
+                               (+ sum 1)
+                               sum)]
+                          [new-dac-count
+                           (if (member "dac" next-path)
+                               (+ saw-dac-count 1)
+                               saw-dac-count)]
+                          [new-fft-count
+                           (if (member "fft" next-path)
+                               (+ saw-fft-count 1)
+                               saw-fft-count)])
+                                                    
+                      (cond
+                        [(= 0 (remainder counter 100000))
+                         (printf ".")]
+                        [(= 1 (remainder sum 10))
+                         (printf "s")]
+                        [(= 17 (remainder counter 500000))
+                         (printf "counter: ~a; [process time ~as] saw-dac: ~a; saw-fft: ~a; sum: ~a; next-path: ~a~n"
+                                 counter (/ (current-process-milliseconds) 1000.0) new-dac-count new-fft-count sum next-path)]
+                        )
+                      (values new-sum new-dac-count new-fft-count)
+                      ))])
+                sum)))
+
+                    
