@@ -18,6 +18,9 @@
   ;;   
   [find-predecessors-of-node-named (-> hash? string? set?)]
   [find-all-predecessors-of-node-named (-> hash? string? set?)]
+
+  [generator-of-paths-from-svr-to-out-via-dac-and-fft (-> stream? generator?)]
+  [new-part2-generated-path-count (-> stream? exact-nonnegative-integer?)]
   ))
 
   
@@ -72,7 +75,7 @@
                   so-far)]
                 [new-so-far
                  (set-add so-far next-one-to-explore)])
-          (iter new-so-far all-new-to-explore)))))
+            (iter new-so-far all-new-to-explore)))))
 
   (set-remove
    (iter (set) (set node-name))
@@ -83,7 +86,7 @@
   ;(printf "(count-paths-from-you-to-out <graph-node-stream>)~n")
   
   (let ([node-hash (linked-nodes-hash graph-node-stream)])
-        ;(printf " node-hash: ~a~n" node-hash)
+    ;(printf " node-hash: ~a~n" node-hash)
       
     (define (count-from-node-named node-name)
       ;(printf "(count-from-node-named ~a)~n" node-name)
@@ -186,3 +189,75 @@
                       ))])
       sum)))
 
+(define (generator-of-paths-from-svr-to-out-via-dac-and-fft graph-node-stream)
+  ;(printf "(generator-of-paths-from-svr-to-out-via-dac-and-fft <graph-node-stream>)~n")
+  (let ([linked-hash (linked-nodes-hash graph-node-stream)])
+    (let ([linked-from-hash
+           (predecessor-nodes-hash linked-hash)])
+      (let ([pred-out (find-all-predecessors-of-node-named linked-from-hash "out")]
+            [pred-dac (find-all-predecessors-of-node-named linked-from-hash "dac")]
+            [pred-fft (find-all-predecessors-of-node-named linked-from-hash "fft")])
+        (let ([pred-relevant (set-intersect pred-out pred-dac pred-fft)])
+ 
+    
+          (generator ()
+                     (define (paths-to-out-from-node-named node-name path-to-here)
+                       ;(printf "  (paths-to-out-from-node-named ~a ~a)~n" node-name path-to-here)
+                       (let ([linked-node-names (hash-ref linked-hash node-name)])
+                         (let ([relevant-linked-node-names
+                                (set-intersect linked-node-names pred-relevant)])
+                           (cond [(set-member? linked-node-names "out")
+                                  (yield (reverse (cons "out" path-to-here)))]
+                               
+                                 [else
+                                  (for ([linked-node-name linked-node-names])
+                                    (paths-to-out-from-node-named
+                                     linked-node-name
+                                     (cons linked-node-name path-to-here)))]))))
+      
+                     (paths-to-out-from-node-named "svr" '("svr"))))))))
+
+  ;; (define (new-part2-generated-path-count graph-node-stream)
+  ;;   (let ([gen (generator-of-paths-from-svr-to-out-via-dac-and-fft graph-node-stream)])
+  ;;     (for/fold ([sum 0])
+  ;;               ([next-path (in-producer gen (void))] ; void as sentinel
+  ;;                [counter (in-naturals 1)])
+  ;;       sum)))
+
+  (define (new-part2-generated-path-count graph-node-stream)
+    (let ([gen (generator-of-paths-from-svr-to-out-via-dac-and-fft graph-node-stream)])
+      (let-values ([(sum c-dac c-fft)
+                    (for/fold ([sum 0]
+                               [saw-dac-count 0]
+                               [saw-fft-count 0])
+                              ([next-path (in-producer gen (void))] ; void as sentinel
+                               [counter (in-naturals 1)])
+                      (let ([new-sum
+                             (if (and (member "dac" next-path)
+                                      (member "fft" next-path))
+                                 (+ sum 1)
+                                 sum)]
+                            [new-dac-count
+                             (if (member "dac" next-path)
+                                 (+ saw-dac-count 1)
+                                 saw-dac-count)]
+                            [new-fft-count
+                             (if (member "fft" next-path)
+                                 (+ saw-fft-count 1)
+                                 saw-fft-count)])
+                                                    
+                        (if (= 0 (remainder counter 100000))
+                            (printf ".")
+                            (cond [(= 1 (remainder sum 100000))
+                                   (printf "s")]
+                                
+                                  [(= 17 (remainder counter 500000))
+                                   (printf "counter: ~a; [process time ~as] saw-dac: ~a; saw-fft: ~a; sum: ~a; next-path: ~a~n"
+                                           counter (/ (current-process-milliseconds) 1000.0) new-dac-count new-fft-count sum next-path)]
+                                  ))
+                        (values new-sum new-dac-count new-fft-count)
+                        ))])
+        sum)))
+
+
+  

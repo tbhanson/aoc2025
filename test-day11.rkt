@@ -190,4 +190,14 @@
             93)
 
            ))))))
- 
+
+; this still takes way too long
+; .....counter: 1745500017; [process time 10805.862s] saw-dac: 95791202; saw-fft: 1745500017; sum: 95791202; next-path: (svr yco fnl sdb mzo mfh irq tev fft ikf uzy yoy anf onh jnl cwr vbf flo cnn khf rmm ocz iup yxz dwm uhx you boh vtg saz ywt igz mej out)
+;; (time
+;;  (let ([input-port
+;;         (open-input-file "test-data/input-day11-1.txt")])
+;;    (let ([graph-lines (read-graph input-port)])
+;;      (check-equal?
+;;       (new-part2-generated-path-count graph-lines)
+;;       5))))
+
