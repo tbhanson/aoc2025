@@ -82,23 +82,18 @@
           (check-equal? precedes-you (set "aaa"))
           
           (check-equal?
-            (find-predecessors-of-node-named linked-from-hash "out")
-            (list->set (string-split "eee,fff,ggg,iii" ",")))
+           (find-predecessors-of-node-named linked-from-hash "out")
+           (list->set (string-split "eee,fff,ggg,iii" ",")))
 
           (check-equal?
            (find-all-predecessors-of-node-named linked-from-hash "bbb")
-            (list->set (string-split "you,aaa" ",")))
+           (list->set (string-split "you,aaa" ",")))
 
-;;           "aaa: you hhh~n"
-;;           "you: bbb ccc~n"
-;;           "bbb: ddd eee~n"
-;;           "ccc: ddd eee fff~n"
-;;           "ddd: ggg~n"
-;;           "eee: out~n"
-;;           "fff: out~n"
-;;           "ggg: out~n"
-;;           "hhh: ccc fff iii~n"
-;;           "iii: out~n"
+          (check-equal?
+           (set-count
+            (find-all-predecessors-of-node-named linked-from-hash "out"))
+           10)
+             
           )))))
       
  
@@ -164,3 +159,35 @@
 ;;       (part2-generated-path-count graph-lines)
 ;;       5))))
 
+;; how many common ancestors of out, dac, and fft are there?
+(time
+ (let ([input-port
+        (open-input-file "test-data/input-day11-1.txt")])
+
+   (let ([graph-lines (read-graph input-port)])
+     (let ([linked-hash (linked-nodes-hash graph-lines)])
+       (let ([linked-from-hash
+              (predecessor-nodes-hash linked-hash)])
+         (let ([pred-out (find-all-predecessors-of-node-named linked-from-hash "out")]
+               [pred-dac (find-all-predecessors-of-node-named linked-from-hash "dac")]
+               [pred-fft (find-all-predecessors-of-node-named linked-from-hash "fft")])
+                
+           (check-equal?
+            (set-count pred-out)
+            592)
+
+           (check-equal?
+            (set-count pred-dac)
+            383)
+
+           (check-equal?
+            (set-count pred-fft)
+            93)
+
+           (check-equal?
+            (set-count
+             (set-intersect pred-out pred-dac pred-fft))
+            93)
+
+           ))))))
+ 
