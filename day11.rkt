@@ -16,7 +16,8 @@
   [linked-nodes-hash (-> stream? hash?)]
   [predecessor-nodes-hash (-> hash? hash?)]
   ;;   
-  ;;   [find-predecessors-of (-> stream? string? 
+  [find-predecessors-of-node-named (-> hash? string? set?)]
+  [find-all-predecessors-of-node-named (-> hash? string? set?)]
   ))
 
   
@@ -54,7 +55,30 @@
     ;(printf "--> ~a~n" result-hash)
     result-hash))
 
-          
+(define (find-predecessors-of-node-named linked-from-hash node-name)
+  (hash-ref linked-from-hash node-name (set)))
+
+(define (find-all-predecessors-of-node-named linked-from-hash node-name)
+  (define (iter so-far to-explore)
+    (if (set-empty? to-explore)
+        so-far
+        (let ([next-one-to-explore (set-first to-explore)]
+              [remaining-ones-to-maybe-explore (set-rest to-explore)])
+          (let ([all-new-to-explore
+                 (set-subtract
+                  (set-union
+                   (find-predecessors-of-node-named linked-from-hash next-one-to-explore)
+                   remaining-ones-to-maybe-explore)
+                  so-far)]
+                [new-so-far
+                 (set-add so-far next-one-to-explore)])
+          (iter new-so-far all-new-to-explore)))))
+
+  (set-remove
+   (iter (set) (set node-name))
+   node-name))
+    
+  
 (define (count-paths-from-you-to-out graph-node-stream)
   ;(printf "(count-paths-from-you-to-out <graph-node-stream>)~n")
   
