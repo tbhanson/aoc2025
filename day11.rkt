@@ -21,6 +21,9 @@
 
   [generator-of-paths-from-svr-to-out-via-dac-and-fft (-> stream? generator?)]
   [new-part2-generated-path-count (-> stream? exact-nonnegative-integer?)]
+
+  ; asked claude:
+  [fast-part2-count (-> stream? exact-nonnegative-integer?)]
   ))
 
   
@@ -259,5 +262,44 @@
                         ))])
         sum)))
 
+(define (count-paths-with-memo node-hash from-node to-node memo)
+  (let ([key (cons from-node to-node)])
+    (cond
+      [(hash-has-key? memo key)
+       (values (hash-ref memo key) memo)]
+      [(equal? from-node to-node)
+       (values 1 memo)]
+      [else
+       (let ([linked-nodes (hash-ref node-hash from-node (set))])
+         (let-values ([(total new-memo)
+                       (for/fold ([sum 0]
+                                  [current-memo memo])
+                                 ([next-node linked-nodes])
+                         (let-values ([(count updated-memo)
+                                       (count-paths-with-memo 
+                                        node-hash next-node to-node current-memo)])
+                           (values (+ sum count) updated-memo)))])
+           (values total (hash-set new-memo key total))))])))
 
+(define (fast-part2-count graph-node-stream)
+  (let ([node-hash (linked-nodes-hash graph-node-stream)])
+    ;; Count paths: svr -> dac -> fft -> out
+    (let-values ([(count1-dac memo1) 
+                  (count-paths-with-memo node-hash "svr" "dac" (hash))])
+      (let-values ([(count2-fft memo2)
+                    (count-paths-with-memo node-hash "dac" "fft" memo1)])
+        (let-values ([(count3-out memo3)
+                      (count-paths-with-memo node-hash "fft" "out" memo2)])
+          (let ([path1-total (* count1-dac count2-fft count3-out)])
+            
+            ;; Count paths: svr -> fft -> dac -> out
+            (let-values ([(count1-fft memo4)
+                          (count-paths-with-memo node-hash "svr" "fft" memo3)])
+              (let-values ([(count2-dac memo5)
+                            (count-paths-with-memo node-hash "fft" "dac" memo4)])
+                (let-values ([(count3-out memo6)
+                              (count-paths-with-memo node-hash "dac" "out" memo5)])
+                  (let ([path2-total (* count1-fft count2-dac count3-out)])
+                    ;; Return sum (might need to handle overlaps depending on graph)
+                    (+ path1-total path2-total)))))))))))
   
