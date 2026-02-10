@@ -14,7 +14,7 @@
   [part2-generated-path-count (-> stream? exact-nonnegative-integer?)]
   ; part 2, second pass
   [linked-nodes-hash (-> stream? hash?)]
-  ;;   [predecessor-nodes (-> hash? hash?)]
+  [predecessor-nodes-hash (-> hash? hash?)]
   ;;   
   ;;   [find-predecessors-of (-> stream? string? 
   ))
@@ -39,15 +39,33 @@
 (define (linked-nodes-hash graph-node-stream)
   (for/fold ([result (make-immutable-hash)])
             ([next-node graph-node-stream])
-    (hash-set result (car next-node) (cdr next-node))))
-  
+    (hash-set result (car next-node) (list->set (cdr next-node)))))
+
+(define (predecessor-nodes-hash nodes-hash)
+  ;(printf "(predecessor-nodes-hash ~a)~n" nodes-hash)
+  (let ([result-hash
+         (for/fold ([result (make-immutable-hash)])
+                   ([next-linking-node-name (hash-keys nodes-hash)])
+           (for/fold ([new-result result])
+                     ([linked-to-node-name (hash-ref nodes-hash next-linking-node-name)])
+             (let ([linked-from-so-far
+                    (hash-ref new-result linked-to-node-name (set))])
+               (hash-set new-result linked-to-node-name (set-add linked-from-so-far next-linking-node-name)))))])
+    ;(printf "--> ~a~n" result-hash)
+    result-hash))
+
           
 (define (count-paths-from-you-to-out graph-node-stream)
+  ;(printf "(count-paths-from-you-to-out <graph-node-stream>)~n")
+  
   (let ([node-hash (linked-nodes-hash graph-node-stream)])
+        ;(printf " node-hash: ~a~n" node-hash)
       
     (define (count-from-node-named node-name)
+      ;(printf "(count-from-node-named ~a)~n" node-name)
       (let ([linked-node-names (hash-ref node-hash node-name)])
-        (cond [(member "out" linked-node-names)
+        ;(printf " linked-node-names: ~a~n" linked-node-names)
+        (cond [(set-member? linked-node-names "out")
                1]
 
               [else
@@ -64,7 +82,7 @@
       
     (define (paths-to-out-from-node-named node-name path-to-here)
       (let ([linked-node-names (hash-ref node-hash node-name)])
-        (cond [(member "out" linked-node-names)
+        (cond [(set-member? linked-node-names "out")
                (stream-cons
                 (cons "out"
                       path-to-here)
@@ -81,15 +99,16 @@
 
     (stream-map reverse (paths-to-out-from-node-named node-name (list node-name)))))
 
+
 (define (generator-of-paths-from-svr-to-out graph-node-stream)
-  (printf "(generator-of-paths-from-svr-to-out ...)~n")
+  ;(printf "(generator-of-paths-from-svr-to-out ...)~n")
   (let ([node-hash (linked-nodes-hash graph-node-stream)])
     
     (generator ()
                (define (paths-to-out-from-node-named node-name path-to-here)
                  ;(printf "  (paths-to-out-from-node-named ~a ~a)~n" node-name path-to-here)
                  (let ([linked-node-names (hash-ref node-hash node-name)])
-                   (cond [(member "out" linked-node-names)
+                   (cond [(set-member? linked-node-names "out")
                           (yield (reverse (cons "out" path-to-here)))]
                 
                          [else
