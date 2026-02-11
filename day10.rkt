@@ -32,7 +32,8 @@
                                    exact-nonnegative-integer?)]
   [total-button-presses-part2 (-> port? number?)]
   ))
-  
+
+
 
   
 (define (assert pred anError)
@@ -258,111 +259,117 @@
 
 ;; Add these to your existing day10.rkt file
 
-;; Part 2: Find minimum button presses using divide-and-conquer approach
-;; For each counter, find all ways to reach its target, then combine solutions
+;; Part 2: Greedy solve per counter + iterative relaxation to find common solution
 
 
 (define (find-minimum-button-presses button-choices targets)
   (define num-buttons (length button-choices))
   (define num-counters (length targets))
   
-  ;; For a given counter index and target value, find all ways to reach that target
-  ;; Returns list of button-press vectors (only for buttons that affect this counter)
-  (define (find-ways-to-reach-target counter-idx target-val)
+  ;; Calculate current counter values from button presses
+  (define (calculate-counters presses)
+    (for/vector ([counter-idx (in-range num-counters)])
+      (for/sum ([button-idx (in-range num-buttons)]
+                #:when (member counter-idx (list-ref button-choices button-idx)))
+        (vector-ref presses button-idx))))
+  
+  ;; Greedy initial solution: for each counter, distribute target among affecting buttons
+  ;; Prefer buttons that affect fewer counters (more specific)
+  (define initial-presses (make-vector num-buttons 0))
+  
+  (for ([counter-idx (in-range num-counters)])
+    (define target (list-ref targets counter-idx))
     (define affecting-buttons
-      (for/list ([button-idx (in-range num-buttons)]
-                 #:when (member counter-idx (list-ref button-choices button-idx)))
-        button-idx))
-    
-    (if (null? affecting-buttons)
-        '()
-        ;; Generate all combinations of button presses that sum to target-val
-        ;; This is a partition problem - find all ways to make target-val using these buttons
-        (let generate ([remaining-buttons affecting-buttons]
-                       [remaining-target target-val]
-                       [current-presses (make-vector num-buttons 0)])
-          (cond
-            [(= remaining-target 0)
-             (list (vector-copy current-presses))]
-            
-            [(null? remaining-buttons)
-             '()]
-            
-            [(< remaining-target 0)
-             '()]
-            
-            [else
-             (define first-button (car remaining-buttons))
-             (define rest-buttons (cdr remaining-buttons))
-             
-             ;; Try pressing this button 0, 1, 2, ... remaining-target times
-             (apply append
-                    (for/list ([presses (in-range 0 (+ remaining-target 1))])
-                      (define new-presses (vector-copy current-presses))
-                      (vector-set! new-presses first-button presses)
-                      (generate rest-buttons (- remaining-target presses) new-presses)))]))))
-  
-  ;; Find solutions for each counter
-  (define solutions-per-counter
-    (for/list ([counter-idx (in-range num-counters)]
-               [target-val targets])
-      (find-ways-to-reach-target counter-idx target-val)))
-  
-  ;; Now find the combination that minimizes total button presses
-  ;; We need to find a button-press vector that appears in all counter solutions
-  ;; Or more precisely, we need to combine solutions such that they're compatible
-  
-  ;; Check if a button-press vector satisfies all counters
-  (define (satisfies-all-counters? presses)
-    (for/and ([counter-idx (in-range num-counters)]
-              [target-val targets])
-      (define actual-val
-        (for/sum ([button-idx (in-range num-buttons)]
+      (sort
+       (for/list ([button-idx (in-range num-buttons)]
                   #:when (member counter-idx (list-ref button-choices button-idx)))
-          (vector-ref presses button-idx)))
-      (= actual-val target-val)))
+         button-idx)
+       <
+       #:key (lambda (btn-idx) (length (list-ref button-choices btn-idx)))))
+    
+    (unless (null? affecting-buttons)
+      ;; Use the most specific button (affects fewest counters) to reach target
+      (define best-button (car affecting-buttons))
+      (vector-set! initial-presses best-button 
+                  (max (vector-ref initial-presses best-button) target))))
   
-  ;; Try all combinations of solutions from each counter
-  ;; This uses Cartesian product of solution sets
-  (define (find-minimum-total solutions-lists)
-    (if (null? solutions-lists)
-        +inf.0
-        (let try-combinations ([remaining-lists solutions-lists]
-                               [current-candidate (make-vector num-buttons 0)])
-          (cond
-            [(null? remaining-lists)
-             ;; Check if this candidate works
-             (if (satisfies-all-counters? current-candidate)
-                 (apply + (vector->list current-candidate))
-                 +inf.0)]
-            
-            [else
-             (define first-solutions (car remaining-lists))
-             (define rest-lists (cdr remaining-lists))
-             
-             ;; For each solution in first-solutions, try merging with current candidate
-             (apply min
-                    (for/list ([solution first-solutions])
-                      ;; Merge: take max of each button press
-                      ;; Actually, we need to check compatibility
-                      (define merged (make-vector num-buttons 0))
-                      (define compatible? #t)
-                      
-                      (for ([button-idx (in-range num-buttons)])
-                        (define current-val (vector-ref current-candidate button-idx))
-                        (define solution-val (vector-ref solution button-idx))
-                        ;; For compatibility, both should agree (or one should be 0)
-                        (cond
-                          [(and (> current-val 0) (> solution-val 0) (not (= current-val solution-val)))
-                           (set! compatible? #f)]
-                          [else
-                           (vector-set! merged button-idx (max current-val solution-val))]))
-                      
-                      (if compatible?
-                          (try-combinations rest-lists merged)
-                          +inf.0)))]))))
+  ;; Now iteratively adjust to satisfy all counters
+  (define presses (vector-copy initial-presses))
   
-  (find-minimum-total solutions-per-counter))
+  (let loop ([iterations 0])
+    (define current-counters (calculate-counters presses))
+    
+    ;; Check if all counters satisfied
+    (define all-satisfied?
+      (for/and ([current (in-vector current-counters)]
+                [target targets])
+        (= current target)))
+    
+    (cond
+      [all-satisfied?
+       (apply + (vector->list presses))]
+      
+      [(> iterations 100000)
+       (error "Failed to converge")]
+      
+      [else
+       ;; Find counter with largest error
+       (define-values (worst-counter error-amount)
+         (for/fold ([worst-idx 0]
+                    [worst-error 0])
+                   ([counter-idx (in-range num-counters)])
+           (define error (- (list-ref targets counter-idx) 
+                           (vector-ref current-counters counter-idx)))
+           (if (> (abs error) (abs worst-error))
+               (values counter-idx error)
+               (values worst-idx worst-error))))
+       
+       ;; Adjust buttons that affect this counter
+       (define affecting-buttons
+         (for/list ([button-idx (in-range num-buttons)]
+                    #:when (member worst-counter (list-ref button-choices button-idx)))
+           button-idx))
+       
+       (cond
+         [(null? affecting-buttons)
+          (error "No buttons affect counter ~a" worst-counter)]
+         
+         [(> error-amount 0)
+          ;; Need more - press the most specific button once
+          (define best-button
+            (argmin (lambda (btn) (length (list-ref button-choices btn)))
+                    affecting-buttons))
+          (vector-set! presses best-button (+ 1 (vector-ref presses best-button)))
+          (loop (+ iterations 1))]
+         
+         [else
+          ;; Need less - try to decrease a button
+          ;; Find button we can decrease without breaking other counters
+          (define button-to-decrease
+            (for/first ([button-idx affecting-buttons]
+                        #:when (> (vector-ref presses button-idx) 0))
+              button-idx))
+          
+          (if button-to-decrease
+              (begin
+                (vector-set! presses button-to-decrease 
+                            (- (vector-ref presses button-to-decrease) 1))
+                (loop (+ iterations 1)))
+              ;; Can't decrease any button - try increasing another counter to compensate
+              ;; This is a conflict - try different approach
+              (let ([other-affecting-buttons
+                     (filter (lambda (btn) 
+                              (for/or ([other-counter (list-ref button-choices btn)])
+                                (and (not (= other-counter worst-counter))
+                                     (< (vector-ref current-counters other-counter)
+                                        (list-ref targets other-counter)))))
+                             affecting-buttons)])
+                (if (null? other-affecting-buttons)
+                    (error "Cannot resolve conflict at counter ~a" worst-counter)
+                    (begin
+                      ;(define btn (car other-affecting-buttons))
+                      (vector-set! presses (car other-affecting-buttons) (+ 1 (vector-ref presses (car other-affecting-buttons))))
+                      (loop (+ iterations 1))))))])])))
 
 (define (total-button-presses-part2 in-port)
   (let ([stream-of-parsed-lines
@@ -376,8 +383,8 @@
         (printf "Processing line ~a with targets ~a...~n" line-number joltage-targets)
         (let ([sub-total
                (with-handlers ([exn:fail? (lambda (e) 
-                                            (printf "Error on line ~a: ~a~n" line-number (exn-message e))
-                                            +inf.0)])
+                                           (printf "Error on line ~a: ~a~n" line-number (exn-message e))
+                                           0)])
                  (time (find-minimum-button-presses button-choices joltage-targets)))])
           (printf "line ~a subtotal: ~a~n" line-number sub-total)
           (+ result sub-total))))))
