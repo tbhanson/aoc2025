@@ -4,6 +4,17 @@
          parser-tools/yacc
          (prefix-in : parser-tools/lex-sre))
 
+; coming back to part 2 of this after day 11: part 1 solved by me, part 2 solved by claude (elegant "dynamic programming" solution")
+; recall that I let Claude have several passes at part 2 of this one, each attempt failed.
+; my brain has tried out ideas in the meantime and I think I want to pursue this one:
+; (vaguely divide and conquer, perhaps using some ideas from previous attempts with linear algebra and greedy)
+; more precisely:
+; we convert the buttons to binary vectors V_i
+; (as we did for linear algebra attempts, though we couldn't see an LA solution, since various problems (lines) yieled number of equations less, equal, and sometimes more than number of unknowns)
+; now we proceed one "joltage level counter" at a time
+; e.g. for [.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
+; for each C_j of {3,5,4,7} we enumerate all the ways our V_i can be combined to yield C_j (call these K_ij ?)
+; then we "combine" by finding smallest combination (smallest sum of coefficients) that solves all C_j
 
 (provide
  (contract-out
@@ -16,21 +27,12 @@
   [find-length-of-shortest-toggle-path (-> string? list? exact-nonnegative-integer?)]
   [total-part1-button-presses (-> port? exact-nonnegative-integer?)]
   ; part 2 (my first attempt after several failed attempts by claude.ai)
-  [distance-to-goal (-> (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?) exact-nonnegative-integer?)]
-  [not-closer-to-goal? (-> (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?) boolean?)]
-  [part2-paths-from-with-hash (->
-                               (listof exact-nonnegative-integer?)
-                               (-> exact-nonnegative-integer? exact-nonnegative-integer? exact-nonnegative-integer?)
-                               (listof exact-nonnegative-integer?) exact-nonnegative-integer? hash? hash?)]
-  [find-length-of-shortest-part2-path (-> (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?) exact-nonnegative-integer?)]
-  [find-total-part2-button-presses (-> port? exact-nonnegative-integer?)]
-
-  ; provisionally rejecting linear equations; try greedily getting as close to, but under the goal as we can; how long does that take?
-  [joltage-<=? (-> (listof exact-nonnegative-integer?) (listof exact-nonnegative-integer?) boolean?)]
-  [part2-greedily-get-close-to-but-not-past-goal (-> (listof exact-nonnegative-integer?) (listof (listof exact-nonnegative-integer?)) list?)]
-  [get-greedy-path-hash (-> (listof exact-nonnegative-integer?) list? hash?)]
-  [greedily-find-length-of-shortest-part2-path (-> (listof exact-nonnegative-integer?) list? number?)]
+  [find-minimum-button-presses (-> (listof (listof exact-nonnegative-integer?))
+                                   (listof exact-nonnegative-integer?)
+                                   exact-nonnegative-integer?)]
+  [total-button-presses-part2 (-> port? number?)]
   ))
+  
 
   
 (define (assert pred anError)
@@ -250,325 +252,132 @@
          (read-manual-line-bits-parsed in-port)))))
 
 
+; I decided to ask Claude to implement my idea
+;; Minimum button presses for joltage configuration - Claude
+;; https://claude.ai/chat/26639470-8d40-4003-a031-7d475686f961
 
-;; part 2; I played around asking claude.ai to solve part 2; it was very willing to try, but failed in various ways.
-;; thinking about it, it feels as though I can adapt what I did in part 1 (working from start and back from finish until I find a meeting point) -- different, but analogous
-;; the first naive approach is too slow however (solves the small sample, but not even line 1 of the real input); too many options and steps, me thinks;
-;; what about greedy? what about ruling out steps that take us away from goal (at least until we're close?) ?
-;; NB: I explored the idea of using linear algebra, but just the first 10 real cases make this seem infeasible:
-;; '("5 equations, 6 unknowns"
-;;   "4 equations, 4 unknowns"
-;;   "9 equations, 9 unknowns"
-;;   "9 equations, 10 unknowns"
-;;   "7 equations, 8 unknowns"
-;;   "13 equations, 10 unknowns"
-;;   "4 equations, 5 unknowns"
-;;   "8 equations, 9 unknowns"
-;;   "8 equations, 7 unknowns"
-;;   "10 equations, 10 unknowns")
-;;
-;; so now I'm thinking maybe a "greedy" approach might be better:
-;; at each step choose whatever button take you closest to the goal (what about ties? flip a coin?) until no button works (any button would take us over the goal);
-;; this step would seem to go fast -- o(n) or something
-;; not quite sure what to do after that; do we remember where we've been, back off the last step and try an approach like the first one we tried from there (starting much closer
-;; to the goal?); if that doesn't work back off again, ...?
+;; Add these to your existing day10.rkt file
+
+;; Part 2: Find minimum button presses using divide-and-conquer approach
+;; For each counter, find all ways to reach its target, then combine solutions
 
 
-(define (distance-to-goal from to)
-  (for/fold ([sum 0])
-            ([from_i from]
-             [to_i to])
-    (+ sum
-       (abs (- to_i from_i)))))
-
-(define (not-closer-to-goal? at-least-state inquire-state goal-state)
-  (let ([at-least-distance (distance-to-goal at-least-state goal-state)]
-        [compare-distance  (distance-to-goal inquire-state goal-state)])
-    (>= compare-distance at-least-distance)))
-
-(define (joltage-<=? j1 j2)
-  (stream-andmap
-   (lambda (j-pair) (<= (car j-pair) (cdr j-pair)))
-   (apply map cons (list j1 j2))))
-                    
-(define (apply-op op state move)
-  (let ([state-length (length state)])
-    (let ([new-state
-           (for/list
-               ([state_i state]
-                [i (in-range state-length)])
-             (if (member i move)
-                 (op state_i 1)
-                 state_i))])
-      ;(printf "(apply-op ~a ~a ~a) --> ~a~n" op state move new-state)
-      new-state)))                   
+(define (find-minimum-button-presses button-choices targets)
+  (define num-buttons (length button-choices))
+  (define num-counters (length targets))
   
-(define (part2-paths-from-with-hash goal-state add-or-subtract button-choices max-depth hash-til-now)
-  ;(printf "(part2-paths-from-with-hash ~a ~a ~a ~a ~a)~n" goal-state add-or-subtract button-choices max-depth hash-til-now)
-  
-  (let ([depth-so-far
-         (for/fold ([result 0])
-                   ([next-node-path (hash-values hash-til-now)])
-           (if (> (length next-node-path) result)
-               (length next-node-path)
-               result))])
-    (for/fold ([result hash-til-now])
-              ([depth (in-range depth-so-far max-depth)])
-      ; expand from frontier, which means those parts of result at distance depth from the start
-      (for*/fold ([new-result result])
-                 ([next-move button-choices]
-                  [examine-state (hash-keys result)]
-                  #:when (= depth (length (hash-ref result examine-state))))
-        (let ([next-candidate-state (apply-op add-or-subtract examine-state next-move)])
-          ; have we seen this already?
-          (cond [(hash-has-key? result next-candidate-state)
-                 (let ([previous-path-length (length (hash-ref result next-candidate-state))]
-                       [this-path-length (+ 1 (length (hash-ref result examine-state)))])
-                   ; is this route shorter? (if yes, record shorter path, else leave alone)
-                   (if (< this-path-length previous-path-length)
-                       (hash-set new-result next-candidate-state (cons next-move (hash-ref result examine-state)))
-                       new-result))]
-
-                [(not-closer-to-goal? examine-state next-candidate-state goal-state)
-                 (begin
-                   ;(printf " skipping state ~a -- not closer to ~a than ~a is already~n" next-candidate-state goal-state examine-state)
-                   new-result)
-                 ]
-                
-                [else
-                 (hash-set new-result next-candidate-state (cons next-move (hash-ref result examine-state)))]))))))
-
-(define (find-length-of-shortest-part2-path state-to-reach button-choices)
-  (let ([state-length (length state-to-reach)])
-    (let ([initial-state (make-list state-length 0)])
-      (let ([crude-distance-estimate
-             (distance-to-goal initial-state state-to-reach)])
-      
-        (define (shortest-path nodes-from-start nodes-from-finish nodes-that-link)
-          (let-values ([(distance path)
-                        (for/fold ([shortest-distance-so-far +inf.0]
-                                   [shortest-path-so-far #f])
-                                  ([next-node nodes-that-link])
-                          (let ([length-this-way
-                                 (+ (length (hash-ref nodes-from-start next-node))
-                                    (length (hash-ref nodes-from-finish next-node)))])
-                            (if (< length-this-way shortest-distance-so-far)
-                                (values
-                                 length-this-way
-                                 (append
-                                  (hash-ref nodes-from-start next-node)
-                                  (hash-ref nodes-from-finish next-node)))
-                                (values shortest-distance-so-far shortest-path-so-far))))])
-            (printf "shortest-path: ~a~n" path)
-            distance))
-  
-        (define (iter nodes-from-start nodes-from-finish current-depth)
-          (cond
-            [(> current-depth crude-distance-estimate)
-             (error (format "  are we sure we should ever need more steps than crude-distance-estimate (~a)? (our current-depth is ~a)" crude-distance-estimate current-depth))]
-
-            [else
-             (begin
-               (let ([possible-stepping-stones
-                      (set-intersect
-                       (hash-keys nodes-from-start)
-                       (hash-keys nodes-from-finish))])
-                 (if (not (set-empty? possible-stepping-stones))
-                     ; we found at least one path
-                     (shortest-path nodes-from-start nodes-from-finish possible-stepping-stones)
-                     ; keep looking
-                     (let ([nodes-from-start
-                            (part2-paths-from-with-hash state-to-reach + button-choices (+ 1 current-depth) nodes-from-start)]
-                           [new-nodes-from-finish
-                            (part2-paths-from-with-hash state-to-reach - button-choices (+ 1 current-depth) nodes-from-finish)])
-                       (iter nodes-from-start new-nodes-from-finish (+ 1 current-depth))))))]))
-
-
-        (begin
-          (printf "--- (find-length-of-shortest-part2-path ~a ~a)~n" state-to-reach button-choices)
-          (printf "--- NB: crude-distance-estimate: ~a~n" crude-distance-estimate)
-        
-          (let ([result
-                 (iter
-                  (make-immutable-hash (list (cons initial-state '())))
-                  (make-immutable-hash (list (cons state-to-reach '())))
-                  0)])
-            (printf "--- ---> ~a~n" result)
-            result))))))
+  ;; For a given counter index and target value, find all ways to reach that target
+  ;; Returns list of button-press vectors (only for buttons that affect this counter)
+  (define (find-ways-to-reach-target counter-idx target-val)
+    (define affecting-buttons
+      (for/list ([button-idx (in-range num-buttons)]
+                 #:when (member counter-idx (list-ref button-choices button-idx)))
+        button-idx))
     
+    (if (null? affecting-buttons)
+        '()
+        ;; Generate all combinations of button presses that sum to target-val
+        ;; This is a partition problem - find all ways to make target-val using these buttons
+        (let generate ([remaining-buttons affecting-buttons]
+                       [remaining-target target-val]
+                       [current-presses (make-vector num-buttons 0)])
+          (cond
+            [(= remaining-target 0)
+             (list (vector-copy current-presses))]
+            
+            [(null? remaining-buttons)
+             '()]
+            
+            [(< remaining-target 0)
+             '()]
+            
+            [else
+             (define first-button (car remaining-buttons))
+             (define rest-buttons (cdr remaining-buttons))
+             
+             ;; Try pressing this button 0, 1, 2, ... remaining-target times
+             (apply append
+                    (for/list ([presses (in-range 0 (+ remaining-target 1))])
+                      (define new-presses (vector-copy current-presses))
+                      (vector-set! new-presses first-button presses)
+                      (generate rest-buttons (- remaining-target presses) new-presses)))]))))
+  
+  ;; Find solutions for each counter
+  (define solutions-per-counter
+    (for/list ([counter-idx (in-range num-counters)]
+               [target-val targets])
+      (find-ways-to-reach-target counter-idx target-val)))
+  
+  ;; Now find the combination that minimizes total button presses
+  ;; We need to find a button-press vector that appears in all counter solutions
+  ;; Or more precisely, we need to combine solutions such that they're compatible
+  
+  ;; Check if a button-press vector satisfies all counters
+  (define (satisfies-all-counters? presses)
+    (for/and ([counter-idx (in-range num-counters)]
+              [target-val targets])
+      (define actual-val
+        (for/sum ([button-idx (in-range num-buttons)]
+                  #:when (member counter-idx (list-ref button-choices button-idx)))
+          (vector-ref presses button-idx)))
+      (= actual-val target-val)))
+  
+  ;; Try all combinations of solutions from each counter
+  ;; This uses Cartesian product of solution sets
+  (define (find-minimum-total solutions-lists)
+    (if (null? solutions-lists)
+        +inf.0
+        (let try-combinations ([remaining-lists solutions-lists]
+                               [current-candidate (make-vector num-buttons 0)])
+          (cond
+            [(null? remaining-lists)
+             ;; Check if this candidate works
+             (if (satisfies-all-counters? current-candidate)
+                 (apply + (vector->list current-candidate))
+                 +inf.0)]
+            
+            [else
+             (define first-solutions (car remaining-lists))
+             (define rest-lists (cdr remaining-lists))
+             
+             ;; For each solution in first-solutions, try merging with current candidate
+             (apply min
+                    (for/list ([solution first-solutions])
+                      ;; Merge: take max of each button press
+                      ;; Actually, we need to check compatibility
+                      (define merged (make-vector num-buttons 0))
+                      (define compatible? #t)
+                      
+                      (for ([button-idx (in-range num-buttons)])
+                        (define current-val (vector-ref current-candidate button-idx))
+                        (define solution-val (vector-ref solution button-idx))
+                        ;; For compatibility, both should agree (or one should be 0)
+                        (cond
+                          [(and (> current-val 0) (> solution-val 0) (not (= current-val solution-val)))
+                           (set! compatible? #f)]
+                          [else
+                           (vector-set! merged button-idx (max current-val solution-val))]))
+                      
+                      (if compatible?
+                          (try-combinations rest-lists merged)
+                          +inf.0)))]))))
+  
+  (find-minimum-total solutions-per-counter))
 
-(define (find-total-part2-button-presses in-port)
+(define (total-button-presses-part2 in-port)
   (let ([stream-of-parsed-lines
          (read-manual-line-bits-parsed in-port)])
     (for/fold ([result 0])
               ([next-parsed-line stream-of-parsed-lines]
                [line-number (in-naturals 1)])
-      (let ([joltage-goal (caddr next-parsed-line)]
-            [button-choices (cadr next-parsed-line)])
-        (printf "line ~a joltage-goal: ~a; button-choices: ~a~n" line-number joltage-goal button-choices)
-        ;(time
+      (let ([_light-goal (car next-parsed-line)]
+            [button-choices (cadr next-parsed-line)]
+            [joltage-targets (caddr next-parsed-line)])
+        (printf "Processing line ~a with targets ~a...~n" line-number joltage-targets)
         (let ([sub-total
-               (find-length-of-shortest-part2-path joltage-goal button-choices)])
+               (with-handlers ([exn:fail? (lambda (e) 
+                                            (printf "Error on line ~a: ~a~n" line-number (exn-message e))
+                                            +inf.0)])
+                 (time (find-minimum-button-presses button-choices joltage-targets)))])
           (printf "line ~a subtotal: ~a~n" line-number sub-total)
           (+ result sub-total))))))
-
-
-(define (part2-greedily-get-close-to-but-not-past-goal state-to-reach button-choices)
-  (define (not-too-far? button state-so-far)
-    (let ([state-if (apply-op + state-so-far button)])
-      (joltage-<=? state-if state-to-reach)))
-
-  (define (button-size button)
-    (for/fold ([sum 0])
-              ([sub-button button])
-      (+ sum sub-button)))
-
-  (define (best-button current-state buttons)
-    (let-values ([(the-best-button best-distance)
-                  (for/fold ([best-button-so-far (car buttons)]
-                             [best-distance-so-far
-                              (distance-to-goal
-                               (apply-op + current-state (car buttons))
-                               state-to-reach)])
-                            ([next-button (cdr buttons)])
-                    (let ([distance-from-next-button
-                           (distance-to-goal
-                            (apply-op + current-state next-button)
-                            state-to-reach)])
-                      (if (< distance-from-next-button best-distance-so-far)
-                          (values next-button distance-from-next-button)
-                          (values best-button-so-far best-distance-so-far))))])
-      the-best-button))
-  
-  (define (iter path-so-far state-so-far)
-    (let ([next-options
-           (filter (lambda (button) (not-too-far? button state-so-far))
-                   button-choices)])
-      (if (null? next-options)
-          path-so-far
-          (let ([greedy-button
-                 (best-button state-so-far next-options)])
-            (iter
-             (cons greedy-button path-so-far)
-             (apply-op + state-so-far greedy-button))))))
-
-  ;(printf "(part2-greedily-get-close-to-but-not-past-goal ~a ~a)~n" state-to-reach button-choices)
-  (let ([state-length (length state-to-reach)])
-    (let ([initial-state (make-list state-length 0)])
-      (let ([result
-             (iter '() initial-state)])
-        ;(printf "--> ~a~n" result)
-        (let ([would-take-us-to
-               (for/fold ([state initial-state])
-                         ([button result])
-                 (apply-op + state button))])
-          ;(printf " (this would take us to ~a (~a short of goal: ~a)~n"
-                  would-take-us-to
-                  (distance-to-goal
-                   would-take-us-to
-                   state-to-reach)
-                  state-to-reach)
-          result
-          ))))
-
-; adjusted basic idea:
-; - again come from both ends
-; - iterate over goal set, distance 0, 1, 2, ... from goal (computing hashes as in previous methods)
-; - each time compare the greedy path up to, not beyond goal
-; - if our furthest point is in the goal set, we're hopefully done (might our greediness have caused us to miss something !!?)
-; since greedy search towards goal from start is so much faster than the exhaustive search from either end, this should improve our time performance considerably, I hope!
-
-
-(define (get-greedy-path-hash starting-state greedy-best-button-sequence)
-  (let-values ([(hash-result state path)
-                (for/fold ([result (make-immutable-hash)]
-                           [state-so-far starting-state]
-                           [path-so-far '()])
-                          ([next-button greedy-best-button-sequence])
-                  (let ([next-path (cons next-button path-so-far)]
-                        [next-state
-                         (apply-op + state-so-far next-button)])
-                    (values
-                     (hash-set result next-state next-path)
-                     next-state
-                     next-path)))])
-    hash-result))
-
-; with help from claude!
-(define (call-with-timeout/custodian thunk timeout-seconds [timeout-value +inf.0])
-  (define cust (make-custodian))
-  (define result-box (box #f))
-  (define done? (make-semaphore 0))
-  
-  (parameterize ([current-custodian cust])
-    (thread
-     (lambda ()
-       (set-box! result-box (thunk))
-       (semaphore-post done?))))
-  
-  (define finished? (sync/timeout timeout-seconds done?))
-  
-  (unless finished?
-    (custodian-shutdown-all cust))
-  
-  (if finished?
-      (unbox result-box)
-      timeout-value))
-
-
-(define (greedily-find-length-of-shortest-part2-path state-to-reach button-choices)
-  (printf "(greedily-find-length-of-shortest-part2-path ~a ~a)~n" state-to-reach button-choices)
-  (let ([state-length (length state-to-reach)]
-        [greedy-best (part2-greedily-get-close-to-but-not-past-goal state-to-reach button-choices)])
-    ;(printf " greedy-best: ~a~n" greedy-best)
-    (let ([initial-state (make-list state-length 0)])
-     (let ([greedy-best-hash (get-greedy-path-hash initial-state greedy-best)]
-           [crude-distance-estimate
-             (distance-to-goal initial-state state-to-reach)])
-
-        (define (shortest-path nodes-from-finish nodes-that-link)
-          (let-values ([(distance path)
-                        (for/fold ([shortest-distance-so-far +inf.0]
-                                   [shortest-path-so-far #f])
-                                  ([next-node nodes-that-link])
-                          (let ([length-this-way
-                                 (+ (length greedy-best)
-                                    (length (hash-ref nodes-from-finish next-node)))])
-                            (if (< length-this-way shortest-distance-so-far)
-                                (values
-                                 length-this-way
-                                 (append
-                                  greedy-best
-                                  (hash-ref nodes-from-finish next-node)))
-                                (values shortest-distance-so-far shortest-path-so-far))))])
-            ;(printf "shortest-path: ~a~n" path)
-            distance))
-        
-        (define (iter nodes-from-finish current-depth)
-          (cond
-            [(> current-depth crude-distance-estimate)
-             (error (format "  are we sure we should ever need more steps than crude-distance-estimate (~a)? (our current-depth is ~a)" crude-distance-estimate current-depth))]
-            
-            [else
-             ;(printf " (iter ~a ~a)~n" nodes-from-finish current-depth)
-             (let ([possible-stepping-stones
-                    (set-intersect
-                     (hash-keys greedy-best-hash)
-                     (hash-keys nodes-from-finish))])
-               (if (not (set-empty? possible-stepping-stones))
-                   (shortest-path nodes-from-finish possible-stepping-stones)
-                   (let ([new-depth (+ 1 current-depth)])
-                     (let ([new-nodes-from-finish
-                            (part2-paths-from-with-hash initial-state - button-choices new-depth nodes-from-finish)]) ; state to reach here is initial-state: we are working backwords
-                       (iter new-nodes-from-finish new-depth)))))]))
-
-       (let ([timeout-seconds 2])
-         (let ([result
-                (call-with-timeout/custodian
-                 (lambda ()
-                   (iter
-                    (make-immutable-hash (list (cons state-to-reach '())))
-                    0))
-                 timeout-seconds)])
-           result))))))
-

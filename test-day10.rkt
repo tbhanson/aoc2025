@@ -124,92 +124,19 @@
 
 ; part 2
 
-(check-equal?
- (distance-to-goal (list 0) (list 0))
- 0)
-
-(check-equal?
- (distance-to-goal (list 0) (list 1))
- 1)
-
-(check-equal?
- (distance-to-goal (list 0 0) (list 1 2))
- 3)
-
-(check-false
- (not-closer-to-goal? (list 1) (list 2) (list 2)))
-
-(check-true
- (not-closer-to-goal? (list 1) (list 1) (list 2)))
-
-(check-true
- (joltage-<=? (list 0) (list 0)))
-
-(check-true
- (joltage-<=? (list 0) (list 1)))
-
-(check-true
- (joltage-<=? (list 0 1 2) (list 0 1 2)))
-
-(check-false
- (joltage-<=? (list 0 1 2) (list 0 1 1)))
-
 
 (let ([in-port
        (open-input-string sample-input)])
 
   (check-equal?
-   (find-total-part2-button-presses in-port)
-   33))
-
-; non-test against small sample
-(let ([in-port
-       (open-input-string sample-input)])
-       ;(open-input-file "test-data/input-day10-10.txt")])
-  
-  (let ([stream-of-parsed-lines
-         (read-manual-line-bits-parsed in-port)])
-    (for ([next-parsed-line stream-of-parsed-lines]
-          [line-number (in-naturals 1)])
-      (let ([joltage-goal (caddr next-parsed-line)]
-            [button-choices (cadr next-parsed-line)])
-
-        (printf " (part2-greedily-get-close-to-but-not-past-goal ~a ~a)~n" joltage-goal button-choices)
-        (printf " --> ~a~n"
-                (part2-greedily-get-close-to-but-not-past-goal joltage-goal button-choices))))))
+   (total-button-presses-part2 in-port)
+   33.0))
 
 
-; current attempt finishes sample-input, but not first 10 lines of real input 
-(let ([in-port
-       ;(open-input-string sample-input)])
-       (open-input-file "test-data/input-day10-10.txt")])
-  
-  (let ([stream-of-parsed-lines
-         (read-manual-line-bits-parsed in-port)])
-    (let ([count-finished
-           (for/fold ([count-non-infinite-paths 0])
-                     ([next-parsed-line stream-of-parsed-lines]
-                      [line-number (in-naturals 1)])
-             (let ([joltage-goal (caddr next-parsed-line)]
-                   [button-choices (cadr next-parsed-line)])
-               
-               (let ([this-shortest-path
-                      (greedily-find-length-of-shortest-part2-path joltage-goal button-choices)])
-                 (printf " ~a: (greedily-find-length-of-shortest-part2-path ~a ~a)~n" line-number joltage-goal button-choices)
-                 (printf " --> ~a~n" this-shortest-path)
-                 (if (< this-shortest-path +inf.0)
-                     (+ count-non-infinite-paths 1)
-                     count-non-infinite-paths))))])
-      (printf "we computed ~a paths without timing out~n"  count-finished))))
-                  
+(time
+ (let ([in-port
+        (open-input-file "test-data/input-day10-10.txt")])
+   (check-equal?
+    (total-button-presses-part2 in-port)
+    30)))
 
-
-
-      ;; (time
-      ;;  (let ([in-port
-      ;;         (open-input-file "test-data/input-day10-10.txt")])
-      ;;    (check-equal?
-      ;;     (find-total-part2-button-presses in-port)
-      ;;     30)))
-
-      
