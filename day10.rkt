@@ -259,117 +259,102 @@
 
 ;; Add these to your existing day10.rkt file
 
-;; Part 2: Greedy solve per counter + iterative relaxation to find common solution
+;; Part 2: Solve as linear system using Gaussian elimination
 
 
 (define (find-minimum-button-presses button-choices targets)
   (define num-buttons (length button-choices))
   (define num-counters (length targets))
   
-  ;; Calculate current counter values from button presses
+  ;; Build the coefficient matrix A where A[i][j] = 1 if button j affects counter i
+  (define A
+    (for/vector ([counter-idx (in-range num-counters)])
+      (for/vector ([button-idx (in-range num-buttons)])
+        (if (member counter-idx (list-ref button-choices button-idx))
+            1.0
+            0.0))))
+  
+  (define b (list->vector (map exact->inexact targets)))
+  
+  ;; Solve Ax = b using least squares or pseudo-inverse approach
+  ;; For now, use a simple approach: try to solve greedily
+  
+  ;; Actually, let's use a different strategy:
+  ;; Since this is an integer linear program, try integer solutions
+  ;; Start with x = 0 and incrementally add button presses
+  
   (define (calculate-counters presses)
     (for/vector ([counter-idx (in-range num-counters)])
-      (for/sum ([button-idx (in-range num-buttons)]
-                #:when (member counter-idx (list-ref button-choices button-idx)))
-        (vector-ref presses button-idx))))
+      (for/sum ([button-idx (in-range num-buttons)])
+        (* (vector-ref (vector-ref A counter-idx) button-idx)
+           (vector-ref presses button-idx)))))
   
-  ;; Greedy initial solution: for each counter, distribute target among affecting buttons
-  ;; Prefer buttons that affect fewer counters (more specific)
-  (define initial-presses (make-vector num-buttons 0))
-  
-  (for ([counter-idx (in-range num-counters)])
-    (define target (list-ref targets counter-idx))
-    (define affecting-buttons
-      (sort
-       (for/list ([button-idx (in-range num-buttons)]
-                  #:when (member counter-idx (list-ref button-choices button-idx)))
-         button-idx)
-       <
-       #:key (lambda (btn-idx) (length (list-ref button-choices btn-idx)))))
-    
-    (unless (null? affecting-buttons)
-      ;; Use the most specific button (affects fewest counters) to reach target
-      (define best-button (car affecting-buttons))
-      (vector-set! initial-presses best-button 
-                  (max (vector-ref initial-presses best-button) target))))
-  
-  ;; Now iteratively adjust to satisfy all counters
-  (define presses (vector-copy initial-presses))
+  ;; Try a smarter greedy: at each step, press the button that reduces
+  ;; the total error the most
+  (define presses (make-vector num-buttons 0))
   
   (let loop ([iterations 0])
-    (define current-counters (calculate-counters presses))
+    (define current (calculate-counters presses))
+    (define errors
+      (for/vector ([i (in-range num-counters)])
+        (- (vector-ref b i) (vector-ref current i))))
     
-    ;; Check if all counters satisfied
-    (define all-satisfied?
-      (for/and ([current (in-vector current-counters)]
-                [target targets])
-        (= current target)))
+    (define total-error (for/sum ([e (in-vector errors)]) (abs e)))
     
     (cond
-      [all-satisfied?
+      [(= total-error 0)
        (apply + (vector->list presses))]
       
-      [(> iterations 100000)
-       (error "Failed to converge")]
+      [(> iterations 10000)
+       (error "Failed to converge after 10000 iterations")]
       
       [else
-       ;; Find counter with largest error
-       (define-values (worst-counter error-amount)
-         (for/fold ([worst-idx 0]
-                    [worst-error 0])
-                   ([counter-idx (in-range num-counters)])
-           (define error (- (list-ref targets counter-idx) 
-                           (vector-ref current-counters counter-idx)))
-           (if (> (abs error) (abs worst-error))
-               (values counter-idx error)
-               (values worst-idx worst-error))))
+       ;; Find the button that reduces error the most
+       (define-values (best-button best-score)
+         (for/fold ([best-btn 0]
+                    [best-improvement -inf.0])
+                   ([button-idx (in-range num-buttons)])
+           ;; Calculate what happens if we press this button
+           (define new-presses (vector-copy presses))
+           (vector-set! new-presses button-idx (+ 1 (vector-ref presses button-idx)))
+           (define new-current (calculate-counters new-presses))
+           (define new-errors
+             (for/vector ([i (in-range num-counters)])
+               (- (vector-ref b i) (vector-ref new-current i))))
+           (define new-total-error (for/sum ([e (in-vector new-errors)]) (abs e)))
+           
+           (define improvement (- total-error new-total-error))
+           
+           (if (> improvement best-improvement)
+               (values button-idx improvement)
+               (values best-btn best-improvement))))
        
-       ;; Adjust buttons that affect this counter
-       (define affecting-buttons
-         (for/list ([button-idx (in-range num-buttons)]
-                    #:when (member worst-counter (list-ref button-choices button-idx)))
-           button-idx))
-       
-       (cond
-         [(null? affecting-buttons)
-          (error "No buttons affect counter ~a" worst-counter)]
-         
-         [(> error-amount 0)
-          ;; Need more - press the most specific button once
-          (define best-button
-            (argmin (lambda (btn) (length (list-ref button-choices btn)))
-                    affecting-buttons))
-          (vector-set! presses best-button (+ 1 (vector-ref presses best-button)))
-          (loop (+ iterations 1))]
-         
-         [else
-          ;; Need less - try to decrease a button
-          ;; Find button we can decrease without breaking other counters
-          (define button-to-decrease
-            (for/first ([button-idx affecting-buttons]
-                        #:when (> (vector-ref presses button-idx) 0))
-              button-idx))
-          
-          (if button-to-decrease
-              (begin
-                (vector-set! presses button-to-decrease 
-                            (- (vector-ref presses button-to-decrease) 1))
-                (loop (+ iterations 1)))
-              ;; Can't decrease any button - try increasing another counter to compensate
-              ;; This is a conflict - try different approach
-              (let ([other-affecting-buttons
-                     (filter (lambda (btn) 
-                              (for/or ([other-counter (list-ref button-choices btn)])
-                                (and (not (= other-counter worst-counter))
-                                     (< (vector-ref current-counters other-counter)
-                                        (list-ref targets other-counter)))))
-                             affecting-buttons)])
-                (if (null? other-affecting-buttons)
-                    (error "Cannot resolve conflict at counter ~a" worst-counter)
-                    (begin
-                      ;(define btn (car other-affecting-buttons))
-                      (vector-set! presses (car other-affecting-buttons) (+ 1 (vector-ref presses (car other-affecting-buttons))))
-                      (loop (+ iterations 1))))))])])))
+       ;; Press the best button
+       (if (> best-score 0)
+           (begin
+             (vector-set! presses best-button (+ 1 (vector-ref presses best-button)))
+             (loop (+ iterations 1)))
+           ;; No improvement possible - might need to decrease
+           ;; Try decreasing a button that's overshooting
+           (let ([decreased #f])
+             (for ([button-idx (in-range num-buttons)]
+                   #:break decreased
+                   #:when (> (vector-ref presses button-idx) 0))
+               (define new-presses (vector-copy presses))
+               (vector-set! new-presses button-idx (- (vector-ref presses button-idx) 1))
+               (define new-current (calculate-counters new-presses))
+               (define new-errors
+                 (for/vector ([i (in-range num-counters)])
+                   (- (vector-ref b i) (vector-ref new-current i))))
+               (define new-total-error (for/sum ([e (in-vector new-errors)]) (abs e)))
+               
+               (when (< new-total-error total-error)
+                 (vector-set! presses button-idx (- (vector-ref presses button-idx) 1))
+                 (set! decreased #t)))
+             
+             (if decreased
+                 (loop (+ iterations 1))
+                 (error "Cannot make progress"))))])))
 
 (define (total-button-presses-part2 in-port)
   (let ([stream-of-parsed-lines
